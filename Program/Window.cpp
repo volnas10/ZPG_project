@@ -7,16 +7,22 @@
 #include <iostream>
 
 #include "Shader.h"
+#include "Object.h"
 
 #include "Window.h"
 
+#define MOVEMENT_SPEED 2.0f
+
 Window::Window(GLFWwindow* window) {
 	this->window = window;
+
+    // Set callbacks
 	glfwSetWindowUserPointer(window, reinterpret_cast<void*>(this));
+    glfwSetScrollCallback(window, scrollCallback);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
     glfwSetKeyCallback(window, keyCallback);
-
-    // Move this initialization into renderer class in future
+    
+    // Create program vith basic shaders
     std::vector<Shader> shaders;
     shaders.push_back(Shader("./shaders/VertexShader.glsl", GL_VERTEX_SHADER));
     shaders.push_back(Shader("./shaders/FragmentShader.glsl", GL_FRAGMENT_SHADER));
@@ -32,25 +38,13 @@ Window::Window(GLFWwindow* window) {
 }
 
 void Window::start() {
-    float points[] = {
-        0.0f, 0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f
-    };
-
-    GLuint VBO;
-    glGenBuffers(1, &VBO); // generate the VBO
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+    
+    // Test cube
+    Object* test = new Object();
 
     GLuint VAO = 0;
-    glGenVertexArrays(1, &VAO); //generate the VAO
-    glBindVertexArray(VAO); //bind the VAO
-
-
-    glEnableVertexAttribArray(0); //enable vertex attributes
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
     GLuint matrix_ID = program->getUniformLocation("MVP");
 
@@ -67,9 +61,12 @@ void Window::start() {
 
         glUniformMatrix4fv(matrix_ID, 1, GL_FALSE, &MVP[0][0]);
 
-        glBindVertexArray(VAO);
-        // draw triangles
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        // Prepare test cube for rendering
+        // Later loop iterating through all objects
+        size_t index_count = test->prepareForDraw();
+
+        // Draw triangles
+        glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, NULL);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -84,11 +81,20 @@ void Window::windowResizeCallback(GLFWwindow* window, int width, int height) {
 
 void Window::windowResized(int width, int height) {
     window_size = glm::vec2(width, height);
+    // Notify all objects that need to know current window size
+}
+
+void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    Window* actual_window = (Window*)glfwGetWindowUserPointer(window);
+    actual_window->scroll(yoffset);
+}
+
+void Window::scroll(double yoffset) {
+    camera->changeFov(yoffset);
 }
 
 void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     Window* actual_window = (Window*)glfwGetWindowUserPointer(window);
-    // Do something on key press
 }
 
 void Window::handleInput() {
@@ -98,7 +104,6 @@ void Window::handleInput() {
 
     double current_time = glfwGetTime();
     float delta_time = float(current_time - last_time);
-
 
     double xpos, ypos;
 
@@ -112,25 +117,25 @@ void Window::handleInput() {
 
     // Move forward
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        dir.z = 1.0f * delta_time;
+        dir.z = MOVEMENT_SPEED * delta_time;
     }
     // Move backward
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        dir.z = -1.0f * delta_time;
+        dir.z = -MOVEMENT_SPEED * delta_time;
     }
     // Strafe right
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        dir.x = 1.0f * delta_time;
+        dir.x = MOVEMENT_SPEED * delta_time;
     }
     // Strafe left
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        dir.x = -1.0f * delta_time;
+        dir.x = -MOVEMENT_SPEED * delta_time;
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        dir.y = 1.0f * delta_time;
+        dir.y = MOVEMENT_SPEED * delta_time;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        dir.y = -1.0f * delta_time;
+        dir.y = -MOVEMENT_SPEED * delta_time;
     }
 
     camera->move(dir, horizontal_angle, vertical_angle);

@@ -36,6 +36,7 @@ int main(void) {
 
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(1);
+	glClearColor(0.0f, 0.0f, 0.2f, 0.0f);
 
 	glewExperimental = GL_TRUE;
 
@@ -44,6 +45,11 @@ int main(void) {
 		glfwTerminate();
 		return -1;
 	}
+
+	// Enable depth test
+	glEnable(GL_DEPTH_TEST);
+	// Accept fragment if it closer to the camera than the former one
+	glDepthFunc(GL_LESS);
 
 	// Get version info
 	std::cout << "OpenGL Version: " << glGetString(GL_VERSION) << std::endl;

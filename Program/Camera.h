@@ -18,7 +18,7 @@ public:
 	Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle, float aspect_ratio);
 
 	void move(glm::vec3 dir, float h_angle, float v_angle);
-
+	void changeFov(double value);
 
 	glm::mat4 getView();
 	glm::mat4 getProjection();

@@ -45,6 +45,14 @@ void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
 	);
 }
 
+void Camera::changeFov(double value) {
+	float new_fov = fov - value;
+	if (new_fov > 20 && new_fov < 120) {
+		fov = new_fov;
+	}
+
+}
+
 glm::mat4 Camera::getView() {
 	return view_matrix;
 }

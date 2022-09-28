@@ -14,7 +14,6 @@ private:
 	glm::vec2 window_size;
 	GLFWwindow* window;
 
-	// More programs later for each use case
 	Program* program;
 
 	Camera* camera;
@@ -23,6 +22,10 @@ private:
 
 	static void windowResizeCallback(GLFWwindow* window, int width, int height);
 	void windowResized(int width, int height);
+
+	// Handle scroll
+	static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+	void scroll(double yoffset);
 
 	// Handles single key presses
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
