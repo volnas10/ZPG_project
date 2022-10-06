@@ -1,0 +1,30 @@
+#pragma once
+#ifndef RENDERER_H
+#define RENDERER_H
+
+#include <map>
+
+#include "Camera.h"
+#include "Util.h"
+#include "Program.h"
+
+class ObjectRenderer {
+private:
+	// One object can be displayed multiple times with different transformations
+	std::map<Object*, std::vector<trans::Transformation*>> objects;
+
+	Program* program;
+
+	Camera* camera;
+
+	GLuint matrix_ID;
+	static GLuint VAO;
+public:
+	ObjectRenderer(Program* program, Camera* camera);
+
+	void addObject(Object* obj, trans::Transformation*);
+
+	void render();
+};
+
+#endif

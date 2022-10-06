@@ -23,7 +23,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="Program.cpp" />
-    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="ObjectRenderer.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="Window.cpp" />
@@ -36,7 +36,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Program.h" />
-    <ClInclude Include="Scene.h" />
+    <ClInclude Include="ObjectRenderer.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Window.h" />

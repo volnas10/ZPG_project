@@ -2,7 +2,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-namespace transformation {
+#include <glm/gtc/matrix_transform.hpp>
+
+namespace trans {
 	class Transformation {
 	private:
 		// Nested classes
@@ -12,7 +14,7 @@ namespace transformation {
 		protected:
 			float x, y, z;
 		public:
-			TransformationComponent(float x, float y, float z);
+			TransformationComponent(Transformation* parent, float x, float y, float z);
 			void set(float x, float y, float z);
 			virtual glm::mat4 applyTransformation(glm::mat4) = 0;
 		};
@@ -28,30 +30,37 @@ namespace transformation {
 	public:
 		Transformation();
 		Transformation(Transformation* trans);
+		~Transformation();
 
 		glm::mat4 getTransformation();
 
 		void changed();
 
 		void operator<<(Transformation& b);
+		void operator<<(std::nullptr_t);
 
-		static class Position : TransformationComponent {
+		class Position : public TransformationComponent {
 		public:
-			Position(float x, float y, float z) : TransformationComponent(x, y, z) {};
+			Position(Transformation* parent, float x, float y, float z) : TransformationComponent(parent, x, y, z) {};
 			glm::mat4 applyTransformation(glm::mat4 mat);
 		};
 
-		static class Rotation : TransformationComponent {
+		class Rotation : public TransformationComponent {
 		public:
-			Rotation(float x, float y, float z) : TransformationComponent(x, y, z) {};
+			Rotation(Transformation* parent, float x, float y, float z) : TransformationComponent(parent, x, y, z) {};
 			glm::mat4 applyTransformation(glm::mat4 mat);
 		};
 
-		static class Scale : TransformationComponent {
+		class Scale : public TransformationComponent {
 		public:
-			Scale(float x, float y, float z) : TransformationComponent(x, y, z) {};
+			Scale(Transformation* parent, float x, float y, float z) : TransformationComponent(parent, x, y, z) {};
 			glm::mat4 applyTransformation(glm::mat4 mat);
 		};
+
+		Position* translate(float x, float y, float z);
+		Rotation* rotate(float x, float y, float z);
+		Scale* scale(float x, float y, float z);
+		Scale* scale(float size);
 	};
 }
 

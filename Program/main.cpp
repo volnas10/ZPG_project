@@ -62,8 +62,8 @@ int main(void) {
 	std::cout << "Using GLFW " << major << "." << minor << "." << revision << std::endl;
 	
 	// Create my window
-	Window* my_window = new Window(window);
-	my_window->start();
+	Window my_window(window);
+	my_window.start();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

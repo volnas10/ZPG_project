@@ -8,6 +8,8 @@
 
 #include "Shader.h"
 #include "Object.h"
+#include "ObjectRenderer.h"
+#include "Util.h"
 
 #include "Window.h"
 
@@ -40,38 +42,57 @@ Window::Window(GLFWwindow* window) {
 void Window::start() {
     
     // Test cube
-    Object* test = new Object();
+    Object test;
+    ObjectRenderer renderer(program, camera);
 
-    GLuint VAO = 0;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
+    // Both cubes will have shared height transformation
+    float size = 1;
+    bool growing = true;
+    trans::Transformation cube_trans1;
+    auto scale = cube_trans1.scale(1, size, 1);
+    renderer.addObject(&test, &cube_trans1);
 
-    GLuint matrix_ID = program->getUniformLocation("MVP");
+    // And the second will also get rotated around the first one 
+    trans::Transformation cube_trans2;
+    float angle = 0;
+    cube_trans2.translate(2, 0, 0);
+    auto rotation = cube_trans2.rotate(0, angle, 0);
+
+    // Apply first transformation for scale
+    cube_trans2 << cube_trans1;
+   
+    renderer.addObject(&test, &cube_trans2);
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        program->use();
 
         handleInput();
 
-        glm::mat4 model_matrix = glm::mat4(1.0f);
-        glm::mat4 view_matrix = camera->getView();
-        glm::mat4 projection_matrix = camera->getProjection();
-        glm::mat4 MVP = projection_matrix * view_matrix * model_matrix;
+        // Call .render() on all renderers (currently just one)
+        renderer.render();
 
-        glUniformMatrix4fv(matrix_ID, 1, GL_FALSE, &MVP[0][0]);
+        // Rotate cube 2
+        angle = fmod(angle + 0.01, 360);
 
-        // Prepare test cube for rendering
-        // Later loop iterating through all objects
-        size_t index_count = test->prepareForDraw();
-
-        // Draw triangles
-        glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, NULL);
+        // Growing and shrinking of both cubes
+        if (growing) {
+            if (size >= 2) {
+                growing = false;
+            }
+            size += 0.005;
+        }
+        else {
+            if (size <= 1) {
+                growing = true;
+            }
+            size -= 0.005;
+        }
+        rotation->set(0, angle, 0);
+        scale->set(1, size, 1);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
 }
 
 void Window::windowResizeCallback(GLFWwindow* window, int width, int height) {
