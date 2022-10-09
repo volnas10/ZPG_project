@@ -2,7 +2,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <glm/gtc/matrix_transform.hpp>
+#include <vector>
 
 namespace trans {
 	class Transformation {

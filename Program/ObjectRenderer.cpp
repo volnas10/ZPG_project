@@ -3,8 +3,6 @@
 
 #include <glm/glm.hpp>
 
-#include "Object.h"
-
 #include "ObjectRenderer.h"
 
 GLuint ObjectRenderer::VAO = 0;

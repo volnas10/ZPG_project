@@ -30,6 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\FragmentShader.glsl" />
+    <None Include="shaders\InverseVertexShader.glsl" />
     <None Include="shaders\VertexShader.glsl" />
   </ItemGroup>
   <ItemGroup>

@@ -7,6 +7,7 @@
 #include "Camera.h"
 #include "Util.h"
 #include "Program.h"
+#include "Object.h"
 
 class ObjectRenderer {
 private:

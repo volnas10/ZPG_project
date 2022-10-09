@@ -7,6 +7,10 @@
 
 #include "Program.h"
 
+Program::Program() {
+	program_ID = 0;
+}
+
 Program::Program(std::vector<Shader> shaders) {
 	std::cout << "Linking program" << std::endl;
 

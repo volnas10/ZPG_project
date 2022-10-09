@@ -10,6 +10,7 @@ class Program {
 private:
 	GLuint program_ID;
 public:
+	Program();
 	Program(std::vector<Shader> shaders);
 	~Program();
 	void use();

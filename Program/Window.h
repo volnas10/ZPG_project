@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 
+#include "ObjectRenderer.h"
 #include "Program.h"
 #include "Camera.h"
 
@@ -14,7 +15,8 @@ private:
 	glm::vec2 window_size;
 	GLFWwindow* window;
 
-	Program* program;
+	std::vector<ObjectRenderer*> renderers;
+	std::vector<Program*> programs;
 
 	Camera* camera;
 
@@ -35,6 +37,7 @@ private:
 
 public:
 	Window(GLFWwindow* window);
+	~Window();
 
 	void start();
 };

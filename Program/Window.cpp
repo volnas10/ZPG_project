@@ -8,7 +8,6 @@
 
 #include "Shader.h"
 #include "Object.h"
-#include "ObjectRenderer.h"
 #include "Util.h"
 
 #include "Window.h"
@@ -23,36 +22,61 @@ Window::Window(GLFWwindow* window) {
     glfwSetScrollCallback(window, scrollCallback);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
     glfwSetKeyCallback(window, keyCallback);
-    
-    // Create program vith basic shaders
-    std::vector<Shader> shaders;
-    shaders.push_back(Shader("./shaders/VertexShader.glsl", GL_VERTEX_SHADER));
-    shaders.push_back(Shader("./shaders/FragmentShader.glsl", GL_FRAGMENT_SHADER));
-    program = new Program(shaders);
 
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     window_size = glm::vec2(width, height);
 
     camera = new Camera(glm::vec3(0.0f, 0.0f, -4.0f), 70.0f, 0.0f, 0.0f, (float) width / height);
-
     last_time = -1;
+
+    // Load shaders
+    Shader fragment_shader = Shader("./shaders/FragmentShader.glsl", GL_FRAGMENT_SHADER);
+    Shader vertex_shader = Shader("./shaders/VertexShader.glsl", GL_VERTEX_SHADER);
+    Shader inverse_vertex_shader = Shader("./shaders/InverseVertexShader.glsl", GL_VERTEX_SHADER);
+
+    // Send shaders to first program
+    std::vector<Shader> shaders;
+    shaders.push_back(fragment_shader);
+    shaders.push_back(vertex_shader);
+    programs.push_back(new Program(shaders));
+
+    // Send shaders to second program
+    shaders.pop_back();
+    shaders.push_back(inverse_vertex_shader);
+    programs.push_back(new Program(shaders));
+
+    // Create renderers with each program
+    renderers.push_back(new ObjectRenderer(programs[0], camera));
+    renderers.push_back(new ObjectRenderer(programs[1], camera));
+
+}
+
+Window::~Window() {
+    for (ObjectRenderer* renderer : renderers) {
+        delete renderer;
+    }
+
+    for (Program* program : programs) {
+        delete program;
+    }
+    delete camera;
 }
 
 void Window::start() {
     
     // Test cube
     Object test;
-    ObjectRenderer renderer(program, camera);
 
     // Both cubes will have shared height transformation
     float size = 1;
     bool growing = true;
     trans::Transformation cube_trans1;
     auto scale = cube_trans1.scale(1, size, 1);
-    renderer.addObject(&test, &cube_trans1);
+    // First renderer will have one cube
+    renderers[0]->addObject(&test, &cube_trans1);
 
-    // And the second will also get rotated around the first one 
+    // And the second cube will also get rotated around the first one 
     trans::Transformation cube_trans2;
     float angle = 0;
     cube_trans2.translate(2, 0, 0);
@@ -60,32 +84,35 @@ void Window::start() {
 
     // Apply first transformation for scale
     cube_trans2 << cube_trans1;
-   
-    renderer.addObject(&test, &cube_trans2);
+    
+    // Second renderer will have one cube
+    renderers[1]->addObject(&test, &cube_trans2);
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         handleInput();
 
-        // Call .render() on all renderers (currently just one)
-        renderer.render();
+        // Render scene
+        for (ObjectRenderer* renderer : renderers) {
+            renderer->render();
+        }
 
         // Rotate cube 2
-        angle = fmod(angle + 0.01, 360);
+        angle = (float) fmod(angle + 0.01, 360);
 
         // Growing and shrinking of both cubes
         if (growing) {
             if (size >= 2) {
                 growing = false;
             }
-            size += 0.005;
+            size += 0.005f;
         }
         else {
             if (size <= 1) {
                 growing = true;
             }
-            size -= 0.005;
+            size -= 0.005f;
         }
         rotation->set(0, angle, 0);
         scale->set(1, size, 1);
