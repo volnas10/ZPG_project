@@ -16,9 +16,7 @@ private:
 
 	Program* program;
 
-	Camera* camera;
-
-	GLuint matrix_ID;
+	GLuint model_matrix_ID;
 	static GLuint VAO;
 public:
 	ObjectRenderer(Program* program, Camera* camera);

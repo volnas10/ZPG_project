@@ -1,7 +1,5 @@
-#define GLEW_STATIC
-#include <GL/glew.h>
-
-#include <GLFW/glfw3.h>
+//#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 #include <iostream>
 
@@ -35,6 +33,9 @@ Program::Program(std::vector<Shader> shaders) {
 	for (Shader shader : shaders) {
 		glDetachShader(program_ID, shader.getID());
 	}
+
+	view_ID = glGetUniformLocation(program_ID, "ViewMatrix");
+	projection_ID = glGetUniformLocation(program_ID, "ProjectionMatrix");
 }
 
 Program::~Program() {
@@ -48,6 +49,13 @@ void Program::use() {
 void Program::stopUsing() {
 	glUseProgram(0);
 }
+
+void Program::notify(glm::mat4 view_matrix, glm::mat4 projection_matrix) {
+	glProgramUniformMatrix4fv(program_ID, view_ID, 1, GL_FALSE, &view_matrix[0][0]);
+	glProgramUniformMatrix4fv(program_ID, projection_ID, 1, GL_FALSE, &projection_matrix[0][0]);
+}
+
+
 
 GLuint Program::getUniformLocation(std::string name) {
 	return glGetUniformLocation(program_ID, name.data());

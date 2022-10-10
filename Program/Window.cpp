@@ -50,6 +50,9 @@ Window::Window(GLFWwindow* window) {
     renderers.push_back(new ObjectRenderer(programs[0], camera));
     renderers.push_back(new ObjectRenderer(programs[1], camera));
 
+    for (Program* program : programs) {
+        camera->subscribe(program);
+    }
 }
 
 Window::~Window() {
@@ -163,31 +166,41 @@ void Window::handleInput() {
 
     glm::vec3 dir(.0f, .0f, .0f);
 
+    bool moved = false;
+
     // Move forward
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         dir.z = MOVEMENT_SPEED * delta_time;
+        moved = true;
     }
     // Move backward
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         dir.z = -MOVEMENT_SPEED * delta_time;
+        moved = true;
     }
     // Strafe right
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
         dir.x = MOVEMENT_SPEED * delta_time;
+        moved = true;
     }
     // Strafe left
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
         dir.x = -MOVEMENT_SPEED * delta_time;
+        moved = true;
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         dir.y = MOVEMENT_SPEED * delta_time;
+        moved = true;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
         dir.y = -MOVEMENT_SPEED * delta_time;
+        moved = true;
     }
 
-    camera->move(dir, horizontal_angle, vertical_angle);
-
     last_time = current_time;
+    // Stop when there's no movement
+    if (!moved && horizontal_angle == 0 && vertical_angle == 0) return;
+
+    camera->move(dir, horizontal_angle, vertical_angle);
 }
 

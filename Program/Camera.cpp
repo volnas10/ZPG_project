@@ -2,6 +2,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <iostream>
 
 #include "Camera.h"
 
@@ -13,10 +14,22 @@ Camera::Camera(glm::vec3 position, float fov, float horizontal_angle, float vert
 	this->aspect_ratio = aspect_ratio;
 }
 
-void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
+void Camera::subscribe(Program* program) {
+	subscribers.push_back(program);
+}
 
+void Camera::notifySubscribers() {
+	for (Program* program : subscribers) {
+		program->notify(view_matrix, projection_matrix);
+	}
+}
+
+void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
 	horizontal_angle += h_angle;
 	vertical_angle += v_angle;
+
+	if (vertical_angle < -1.57) vertical_angle = -1.57;
+	else if (vertical_angle > 1.57) vertical_angle = 1.57;
 
 	glm::vec3 direction(
 	    cos(vertical_angle) * sin(horizontal_angle),
@@ -34,7 +47,7 @@ void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
 
 	position += direction * dir.z;
 	position += right * dir.x;
-	position += up * dir.y;
+	position.y += dir.y;
 
 	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 100.0f);
 
@@ -43,6 +56,8 @@ void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
 	    position + direction,
 	    up
 	);
+
+	notifySubscribers();
 }
 
 void Camera::changeFov(double value) {
@@ -50,7 +65,8 @@ void Camera::changeFov(double value) {
 	if (new_fov > 20 && new_fov < 120) {
 		fov = new_fov;
 	}
-
+	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 100.0f);
+	notifySubscribers();
 }
 
 glm::mat4 Camera::getView() {
