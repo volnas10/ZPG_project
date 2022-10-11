@@ -9,6 +9,7 @@
 #include "Shader.h"
 #include "Object.h"
 #include "Util.h"
+#include "Scene.h"
 
 #include "Window.h"
 
@@ -53,6 +54,9 @@ Window::Window(GLFWwindow* window) {
     for (Program* program : programs) {
         camera->subscribe(program);
     }
+
+    //Scene scene("scene1");
+    //scene.load();
 }
 
 Window::~Window() {

@@ -9,12 +9,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <filesystem>
 
 #include "Window.h"
 
 static void error_callback(int error, const char* description){ fputs(description, stderr); }
 
 int main(void) {
+
+	// Check for assimp 
+	if (!std::filesystem::exists("../x64/Debug/assimp-vc143-mtd.dll")) {
+		std::cout << "Please copy assimp-vc143-mtd.dll from './Dependencies/assimp/lib' to './x64/Debug' first" << std::endl;
+		std::cout << "Because static library is too big :(" << std::endl;
+		return 0;
+	};
+
+
 	GLFWwindow* window;
 	glfwSetErrorCallback(error_callback);
 

@@ -2,6 +2,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <glm/glm.hpp>
 #include <vector>
 
 namespace trans {

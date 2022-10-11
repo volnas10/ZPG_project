@@ -1,0 +1,9 @@
+Object {
+	model: Sun.obj
+}
+Object {
+	model: Earth.obj
+}
+Object {
+	model: Moon.obj
+}
