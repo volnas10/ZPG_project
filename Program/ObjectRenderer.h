@@ -8,6 +8,7 @@
 #include "Util.h"
 #include "Program.h"
 #include "Object.h"
+#include "Scene.h"
 
 class ObjectRenderer {
 private:
@@ -16,12 +17,14 @@ private:
 
 	Program* program;
 
-	GLuint model_matrix_ID;
+	GLuint model_matrix_ID, light_ID;
 	static GLuint VAO;
 public:
-	ObjectRenderer(Program* program, Camera* camera);
+	ObjectRenderer(Program* program);
 
 	void addObject(Object* obj, trans::Transformation*);
+
+	void loadFromScene(Scene* scene);
 
 	void render();
 };

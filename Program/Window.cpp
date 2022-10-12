@@ -34,7 +34,6 @@ Window::Window(GLFWwindow* window) {
     // Load shaders
     Shader fragment_shader = Shader("./shaders/FragmentShader.glsl", GL_FRAGMENT_SHADER);
     Shader vertex_shader = Shader("./shaders/VertexShader.glsl", GL_VERTEX_SHADER);
-    Shader inverse_vertex_shader = Shader("./shaders/InverseVertexShader.glsl", GL_VERTEX_SHADER);
 
     // Send shaders to first program
     std::vector<Shader> shaders;
@@ -42,21 +41,12 @@ Window::Window(GLFWwindow* window) {
     shaders.push_back(vertex_shader);
     programs.push_back(new Program(shaders));
 
-    // Send shaders to second program
-    shaders.pop_back();
-    shaders.push_back(inverse_vertex_shader);
-    programs.push_back(new Program(shaders));
-
     // Create renderers with each program
-    renderers.push_back(new ObjectRenderer(programs[0], camera));
-    renderers.push_back(new ObjectRenderer(programs[1], camera));
+    renderers.push_back(new ObjectRenderer(programs[0]));
 
     for (Program* program : programs) {
         camera->subscribe(program);
     }
-
-    //Scene scene("scene1");
-    //scene.load();
 }
 
 Window::~Window() {
@@ -71,29 +61,10 @@ Window::~Window() {
 }
 
 void Window::start() {
+    Scene scene("scene2");
+    scene.load();
     
-    // Test cube
-    Object test;
-
-    // Both cubes will have shared height transformation
-    float size = 1;
-    bool growing = true;
-    trans::Transformation cube_trans1;
-    auto scale = cube_trans1.scale(1, size, 1);
-    // First renderer will have one cube
-    renderers[0]->addObject(&test, &cube_trans1);
-
-    // And the second cube will also get rotated around the first one 
-    trans::Transformation cube_trans2;
-    float angle = 0;
-    cube_trans2.translate(2, 0, 0);
-    auto rotation = cube_trans2.rotate(0, angle, 0);
-
-    // Apply first transformation for scale
-    cube_trans2 << cube_trans1;
-    
-    // Second renderer will have one cube
-    renderers[1]->addObject(&test, &cube_trans2);
+    renderers[0]->loadFromScene(&scene);
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -104,25 +75,6 @@ void Window::start() {
         for (ObjectRenderer* renderer : renderers) {
             renderer->render();
         }
-
-        // Rotate cube 2
-        angle = (float) fmod(angle + 0.01, 360);
-
-        // Growing and shrinking of both cubes
-        if (growing) {
-            if (size >= 2) {
-                growing = false;
-            }
-            size += 0.005f;
-        }
-        else {
-            if (size <= 1) {
-                growing = true;
-            }
-            size -= 0.005f;
-        }
-        rotation->set(0, angle, 0);
-        scale->set(1, size, 1);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

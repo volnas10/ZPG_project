@@ -7,7 +7,7 @@
 
 GLuint ObjectRenderer::VAO = 0;
 
-ObjectRenderer::ObjectRenderer(Program* program, Camera* camera) {
+ObjectRenderer::ObjectRenderer(Program* program) {
 	this->program = program;
 
 	// Create shared VAO for all renderers if not initialized
@@ -16,11 +16,17 @@ ObjectRenderer::ObjectRenderer(Program* program, Camera* camera) {
 		glBindVertexArray(VAO);
 	}
 
-	model_matrix_ID = program->getUniformLocation("ModelMatrix");
+	model_matrix_ID = program->getUniformLocation("model_matrix");
+	light_ID = program->getUniformLocation("light_position");
+
 }
 
 void ObjectRenderer::addObject(Object* obj, trans::Transformation* trans) {
 	objects[obj].push_back(trans);
+}
+
+void ObjectRenderer::loadFromScene(Scene* scene) {
+	this->objects = scene->getObjects();
 }
 
 void ObjectRenderer::render() {
@@ -34,6 +40,8 @@ void ObjectRenderer::render() {
 			// Draw that object with every transformation
 			glm::mat4 model_matrix = trans->getTransformation();
 
+			glm::vec3 light_position = glm::vec3(5.0f, 5.0f, .0f);
+			glUniformMatrix4fv(light_ID, 1, GL_FALSE, &light_position[0]);
 			glUniformMatrix4fv(model_matrix_ID, 1, GL_FALSE, &model_matrix[0][0]);
 
 			// Draw triangles

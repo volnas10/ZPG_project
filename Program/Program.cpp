@@ -34,8 +34,8 @@ Program::Program(std::vector<Shader> shaders) {
 		glDetachShader(program_ID, shader.getID());
 	}
 
-	view_ID = glGetUniformLocation(program_ID, "ViewMatrix");
-	projection_ID = glGetUniformLocation(program_ID, "ProjectionMatrix");
+	view_ID = glGetUniformLocation(program_ID, "view_matrix");
+	projection_ID = glGetUniformLocation(program_ID, "projection_matrix");
 }
 
 Program::~Program() {

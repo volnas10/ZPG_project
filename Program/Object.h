@@ -12,12 +12,14 @@
 class Object {
 private:
 	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec3> colors; // Temporary to show transformations
+	std::vector<glm::vec3> normals;
+	//std::vector<glm::vec2> uvs;
 	std::vector<unsigned int> indices;
 
-	GLuint VBO, VIO, color_buffer;
+	GLuint VBO, VIO;
+	GLuint normal_buffer;//, uv_buffer;
 public:
-	Object();
+	Object(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<unsigned int> indices);
 
 	size_t prepareForDraw();
 };
