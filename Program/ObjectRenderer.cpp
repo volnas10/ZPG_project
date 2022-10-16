@@ -18,7 +18,7 @@ ObjectRenderer::ObjectRenderer(Program* program) {
 
 	model_matrix_ID = program->getUniformLocation("model_matrix");
 	light_ID = program->getUniformLocation("light_position");
-
+	texture_sampler_ID = program->getUniformLocation("texture_sampler");
 }
 
 void ObjectRenderer::addObject(Object* obj, trans::Transformation* trans) {
@@ -32,6 +32,13 @@ void ObjectRenderer::loadFromScene(Scene* scene) {
 void ObjectRenderer::render() {
 	program->use();
 
+	// Set light position
+	glm::vec3 light_position = glm::vec3(0.0f, 0.0f, 0.0f);
+	glUniform3f(light_ID, light_position.x, light_position.y, light_position.z);
+
+	// Use texture unit 0
+	glUniform1i(texture_sampler_ID, 0);
+
 	for (auto obj : objects) {
 		// Prepare object for rendering
 		size_t index_count = obj.first->prepareForDraw();
@@ -40,8 +47,6 @@ void ObjectRenderer::render() {
 			// Draw that object with every transformation
 			glm::mat4 model_matrix = trans->getTransformation();
 
-			glm::vec3 light_position = glm::vec3(5.0f, 5.0f, .0f);
-			glUniformMatrix4fv(light_ID, 1, GL_FALSE, &light_position[0]);
 			glUniformMatrix4fv(model_matrix_ID, 1, GL_FALSE, &model_matrix[0][0]);
 
 			// Draw triangles

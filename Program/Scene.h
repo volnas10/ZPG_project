@@ -12,13 +12,13 @@ class Scene
 private:
 	std::string name;
 	std::map<Object*, std::vector<trans::Transformation*>> objects;
+	std::vector<trans::Transformation*> transformations;
 
-	void parseObject(const aiScene* scene);
+	Object* parseObject(const aiScene* scene, aiString path);
 
 public:
 	Scene(std::string name);
 	bool load();
-	void save();
 
 	std::map<Object*, std::vector<trans::Transformation*>> getObjects();
 

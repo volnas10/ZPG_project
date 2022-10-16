@@ -61,7 +61,7 @@ Window::~Window() {
 }
 
 void Window::start() {
-    Scene scene("scene2");
+    Scene scene("scene1");
     scene.load();
     
     renderers[0]->loadFromScene(&scene);

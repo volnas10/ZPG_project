@@ -25,6 +25,8 @@ void Camera::notifySubscribers() {
 }
 
 void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
+	std::cout << "moved" << std::endl;
+ 
 	horizontal_angle += h_angle;
 	vertical_angle += v_angle;
 

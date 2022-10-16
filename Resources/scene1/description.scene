@@ -1,9 +1,31 @@
+Transformation {
+	scale: 0.4 0.4 0.4
+}
+Transformation {
+	previous: 0
+	scale: 0.5 0.5 0.5
+	position: 10.0 0.0 0.0
+}
+Transformation {
+	previous: 1
+	scale: 0.5 0.5 0.5
+	position: 10.0 0.0 0.0
+}
 Object {
 	model: Sun.obj
+	path: Sun/
+	transformation: 0
 }
 Object {
 	model: Earth.obj
+	path: Earth/
+	transformation: 1
 }
 Object {
 	model: Moon.obj
+	path: Moon/
+	transformation: 2
+}
+Light {
+	position: 5.0 8.0 4.0
 }
