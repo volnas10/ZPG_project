@@ -6,11 +6,6 @@
 #include <vector>
 #include <iostream>
 
-#include "Shader.h"
-#include "Object.h"
-#include "Util.h"
-#include "Scene.h"
-
 #include "Window.h"
 
 #define MOVEMENT_SPEED 2.0f
@@ -31,40 +26,21 @@ Window::Window(GLFWwindow* window) {
     camera = new Camera(glm::vec3(0.0f, 0.0f, -4.0f), 70.0f, 0.0f, 0.0f, (float) width / height);
     last_time = -1;
 
-    // Load shaders
-    Shader fragment_shader = Shader("./shaders/FragmentShader.glsl", GL_FRAGMENT_SHADER);
-    Shader vertex_shader = Shader("./shaders/VertexShader.glsl", GL_VERTEX_SHADER);
+    scene = new Scene("scene1");
+    scene->load();
+    
 
-    // Send shaders to first program
-    std::vector<Shader> shaders;
-    shaders.push_back(fragment_shader);
-    shaders.push_back(vertex_shader);
-    programs.push_back(new Program(shaders));
-
-    // Create renderers with each program
-    renderers.push_back(new ObjectRenderer(programs[0]));
-
-    for (Program* program : programs) {
+    for (Program* program : scene->getPrograms()) {
         camera->subscribe(program);
     }
 }
 
 Window::~Window() {
-    for (ObjectRenderer* renderer : renderers) {
-        delete renderer;
-    }
-
-    for (Program* program : programs) {
-        delete program;
-    }
+    delete scene;
     delete camera;
 }
 
 void Window::start() {
-    Scene scene("scene1");
-    scene.load();
-    
-    renderers[0]->loadFromScene(&scene);
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -72,7 +48,7 @@ void Window::start() {
         handleInput();
 
         // Render scene
-        for (ObjectRenderer* renderer : renderers) {
+        for (ObjectRenderer* renderer : scene->getRenderers()) {
             renderer->render();
         }
 

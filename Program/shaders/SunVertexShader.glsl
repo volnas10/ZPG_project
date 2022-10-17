@@ -36,7 +36,7 @@ void main(){
 	light_direction_cameraspace = light_position_cameraspace + eye_direction_cameraspace;
 	
 	// Normal of the the vertex, in camera space
-	normal_cameraspace = ( view_matrix * model_matrix * vec4(vertex_normal,0)).xyz;
+	normal_cameraspace = -( view_matrix * model_matrix * vec4(vertex_normal,0)).xyz;
 	UV = vertex_uv;
 
 }

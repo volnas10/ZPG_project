@@ -4,8 +4,7 @@
 
 #include <glm/glm.hpp>
 
-#include "ObjectRenderer.h"
-#include "Program.h"
+#include "Scene.h"
 #include "Camera.h"
 
 class UI;
@@ -15,8 +14,7 @@ private:
 	glm::vec2 window_size;
 	GLFWwindow* window;
 
-	std::vector<ObjectRenderer*> renderers;
-	std::vector<Program*> programs;
+	Scene* scene;
 
 	Camera* camera;
 

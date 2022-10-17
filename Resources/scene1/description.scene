@@ -14,18 +14,48 @@ Transformation {
 Object {
 	model: Sun.obj
 	path: Sun/
-	transformation: 0
+	transformations: [0]
 }
 Object {
 	model: Earth.obj
 	path: Earth/
-	transformation: 1
+	transformations: [1]
 }
 Object {
 	model: Moon.obj
 	path: Moon/
-	transformation: 2
+	transformations: [2]
 }
 Light {
-	position: 5.0 8.0 4.0
+	position: 0.0 0.0 0.0
+	color: 1.0 1.0 0.9
+	power: 60.0
+}
+Shader {
+	type: vertex
+	name: VertexShader.glsl
+}
+Shader {
+	type: vertex
+	name: SunVertexShader.glsl
+}
+Shader {
+	type: fragment
+	name: FragmentShader.glsl
+}
+Program {
+	shaders: [0, 2]
+}
+Program {
+	shaders: [1, 2]
+}
+Renderer {
+	objects: [0]
+	program: 1
+	light: 0
+}
+Renderer {
+	objects: [1, 2]
+	program: 0
+	light: 0
 }

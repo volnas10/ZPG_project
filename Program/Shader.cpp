@@ -7,11 +7,11 @@
 
 #include "Shader.h"
 
-Shader::Shader(std::string shader_path, GLenum type) {
+Shader::Shader(std::string name, GLenum type) {
 	shader_ID = glCreateShader(type);
 
 	std::string shader_code;
-	std::ifstream shader_file(shader_path);
+	std::ifstream shader_file("./shaders/" + name);
 	if (shader_file.is_open()) {
 		std::stringstream sstr;
 		sstr << shader_file.rdbuf();
@@ -19,12 +19,12 @@ Shader::Shader(std::string shader_path, GLenum type) {
 		shader_file.close();
 	}
 	else {
-		std::cout << shader_path << " could not be opened" << std::endl;
+		std::cout << name << " could not be opened" << std::endl;
 	}
 
 	GLint result;
 
-	std::cout << "Compiling shader: " << shader_path << std::endl;
+	std::cout << "Compiling shader: " << name << std::endl;
 	const char* shader_ptr = shader_code.data();
 	glShaderSource(shader_ID, 1, &shader_ptr, NULL);
 	glCompileShader(shader_ID);

@@ -12,11 +12,12 @@ out vec3 color;
 
 // Values that stay constant for the whole mesh.
 uniform sampler2D texture_sampler;
-uniform vec3 light_position;
+uniform mat3 light_matrix;
 
 void main(){
-	vec3 LightColor = vec3(1,1,1);
-	float LightPower = 60.0f;
+	vec3 LightColor = vec3(light_matrix[1].x, light_matrix[1].y, light_matrix[1].z);
+	float LightPower = light_matrix[2].x;
+	vec3 light_position = light_matrix[0];
 	
 	// Material properties
 	vec3 MaterialDiffuseColor = texture(texture_sampler, UV).rgb;

@@ -7,12 +7,17 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include <glm/glm.hpp>
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <freeimage.h>
+
+
+#include "Shader.h"
+#include "Program.h"
 
 #include "Scene.h"
 
@@ -79,7 +84,8 @@ GLuint loadTexture(const char* filename) {
 	return texture_ID;
 }
 
-void parseMultipleTransformations(std::string line, int start, std::vector<int>* storage) {
+void parseArray(std::string line, std::vector<int>* storage) {
+	size_t start = line.find("[");
 	int index = 0;
 	for (int i = start + 1; i < line.size(); i++) {
 		char ch = line[i];
@@ -150,6 +156,9 @@ bool Scene::load() {
 	}
 
 	std::vector<trans::Transformation*> transformations;
+	std::vector<glm::mat3> lights;
+	std::vector<Shader> shaders;
+	std::vector<std::pair<Object*, std::vector<trans::Transformation*>>> objects;
 	
 	Importer importer;
 	std::string line;
@@ -201,27 +210,16 @@ bool Scene::load() {
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
 				std::stringstream sstream(line);
-
-				if (line.find("transformation") != std::string::npos) {
-					size_t idx = line.find("[");
-					// Load only one transformation
-					if (idx == std::string::npos) {
-						std::string _;
-						sstream >> _;
-						int t;
-						sstream >> t;
-						trans_indices.push_back(t);
-					}
-					// Load multiple transformations
-					else {
-						parseMultipleTransformations(line, idx, &trans_indices);
-					}
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "transformations") {
+					parseArray(line, &trans_indices);
 					std::getline(description, line);
 					continue;
 				}
-				std::string key, value;
-				sstream >> key >> value;
-				key.pop_back();
+				std::string value;
+				sstream >> value;
 				values[key] = value;
 				std::getline(description, line);
 			}
@@ -238,21 +236,136 @@ bool Scene::load() {
 
 			Object* obj = parseObject(scene, aiString(object_path));
 			obj->name = values["model"];
+			std::vector<trans::Transformation*> object_transformations;
 			for (int idx : trans_indices) {
-				objects[obj].push_back(transformations[idx]);
+				object_transformations.push_back(transformations[idx]);
 			}
+			objects.push_back(std::make_pair(obj, object_transformations));
 		}
-		else if (line.find("") == 0) {
+		// Load light
+		else if (line.find("Light") != std::string::npos) {
+			glm::vec3 light_pos(.0f, .0f, .0f);
+			glm::vec3 light_color(1.0f, 1.0f, 1.0f);
+			float light_power = 50.0f;
+			// Load parameters
+			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "position") {
+					sstream >> light_pos.x >> light_pos.y >> light_pos.z;
+				}
+				else if (key == "color") {
+					sstream >> light_color.x >> light_color.x >> light_color.z;
+				}
+				else if (key == "power") {
+					sstream >> light_power;
+				}
+				std::getline(description, line);
+			}
+			glm::mat3 light;
+			light[0] = light_pos;
+			light[1] = light_color;
+			light[2][0] = light_power;
+			lights.push_back(light);
+		}
 
+		// Load shader
+		else if (line.find("Shader") != std::string::npos) {
+			std::map<std::string, std::string> values;
+			// Load parameters
+			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key, value;
+				sstream >> key >> value;
+				key.pop_back();
+				values[key] = value;
+			
+				std::getline(description, line);
+			}
+			GLenum shader_type;
+			if (values["type"] == "vertex") {
+				shader_type = GL_VERTEX_SHADER;
+			}
+			else if (values["type"] == "fragment") {
+				shader_type = GL_FRAGMENT_SHADER;
+			}
+			Shader shader(values["name"], shader_type);
+			shaders.push_back(shader);
+		}
+
+		// Load program
+		else if (line.find("Program") != std::string::npos) {
+			// Load parameters
+			std::getline(description, line);
+			std::vector<int> shader_indices;
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "shaders") {
+					parseArray(line, &shader_indices);
+				}
+
+				std::getline(description, line);
+			}
+			std::vector<Shader> program_shaders;
+			for (int idx : shader_indices) {
+				program_shaders.push_back(shaders[idx]);
+			}
+			programs.push_back(new Program(program_shaders));
+		}
+		// Load renderers
+		else if (line.find("Renderer") != std::string::npos) {
+			// Load parameters
+			std::getline(description, line);
+			std::vector<int> object_indices;
+			int program_index;
+			int light_index = -1;
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "objects") {
+					parseArray(line, &object_indices);
+				}
+				else if (key == "program") {
+					sstream >> program_index;
+				}
+				else if (key == "light") {
+					sstream >> light_index;
+				}
+				std::getline(description, line);
+			}
+			ObjectRenderer* renderer = new ObjectRenderer(programs[program_index]);
+			for (int object_index : object_indices) {
+				auto pair = objects[object_index];
+				renderer->addObject(pair.first, pair.second);
+			}
+			if (light_index > -1) {
+				renderer->setLight(lights[light_index]);
+			}
+			else {
+				renderer->setLight(glm::mat3(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 50.0f, .0f, .0f));
+			}
+			renderers.push_back(renderer);
 		}
 	}
-
 
 	description.close();
 	return true;
 }
 
-std::map<Object*, std::vector<trans::Transformation*>> Scene::getObjects() {
-	return objects;
+std::vector<ObjectRenderer*> Scene::getRenderers() {
+	return renderers;
+}
+
+std::vector<Program*> Scene::getPrograms() {
+	return programs;
 }
 

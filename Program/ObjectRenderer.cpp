@@ -3,6 +3,8 @@
 
 #include <glm/glm.hpp>
 
+#include "Camera.h"
+
 #include "ObjectRenderer.h"
 
 GLuint ObjectRenderer::VAO = 0;
@@ -17,24 +19,27 @@ ObjectRenderer::ObjectRenderer(Program* program) {
 	}
 
 	model_matrix_ID = program->getUniformLocation("model_matrix");
-	light_ID = program->getUniformLocation("light_position");
+	light_ID = program->getUniformLocation("light_matrix");
 	texture_sampler_ID = program->getUniformLocation("texture_sampler");
+}
+
+void ObjectRenderer::setLight(glm::mat3 light) {
+	this->light = light;
 }
 
 void ObjectRenderer::addObject(Object* obj, trans::Transformation* trans) {
 	objects[obj].push_back(trans);
 }
 
-void ObjectRenderer::loadFromScene(Scene* scene) {
-	this->objects = scene->getObjects();
+void ObjectRenderer::addObject(Object* obj, std::vector<trans::Transformation*> transformations) {
+	objects[obj] = transformations;
 }
 
 void ObjectRenderer::render() {
 	program->use();
 
-	// Set light position
-	glm::vec3 light_position = glm::vec3(0.0f, 0.0f, 0.0f);
-	glUniform3f(light_ID, light_position.x, light_position.y, light_position.z);
+	// Set light
+	glUniformMatrix3fv(light_ID, 1, GL_FALSE, &light[0][0]);
 
 	// Use texture unit 0
 	glUniform1i(texture_sampler_ID, 0);

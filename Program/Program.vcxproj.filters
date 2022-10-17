@@ -53,7 +53,7 @@
     <None Include="shaders\VertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shaders\InverseVertexShader.glsl">
+    <None Include="shaders\SunVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

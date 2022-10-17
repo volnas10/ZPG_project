@@ -3,15 +3,15 @@
 #define SCENE_H
 
 #include <assimp/scene.h>
-#include <map>
-#include "Object.h"
+#include "ObjectRenderer.h"
 #include "Util.h"
 
 class Scene
 {
 private:
 	std::string name;
-	std::map<Object*, std::vector<trans::Transformation*>> objects;
+	std::vector<ObjectRenderer*> renderers;
+	std::vector<Program*> programs;
 	std::vector<trans::Transformation*> transformations;
 
 	Object* parseObject(const aiScene* scene, aiString path);
@@ -20,7 +20,9 @@ public:
 	Scene(std::string name);
 	bool load();
 
-	std::map<Object*, std::vector<trans::Transformation*>> getObjects();
+	std::vector<ObjectRenderer*> getRenderers();
+	std::vector<Program*> getPrograms();
+
 
 };
 
