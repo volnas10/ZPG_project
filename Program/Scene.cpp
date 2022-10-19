@@ -54,7 +54,6 @@ GLuint loadTexture(const char* filename) {
 	height = FreeImage_GetHeight(dib);
 
 
-	FREE_IMAGE_COLOR_TYPE color_type = FreeImage_GetColorType(dib);
 	GLenum gl_color_type;
 	if (format == FIF_BMP || format == FIF_JPEG) {
 		gl_color_type = GL_BGR;
@@ -80,6 +79,80 @@ GLuint loadTexture(const char* filename) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	FreeImage_Unload(dib);
+
+	return texture_ID;
+}
+
+GLuint loadSkybox(std::string path) {
+	FREE_IMAGE_FORMAT format = FIF_UNKNOWN;
+	FIBITMAP* dib(0);
+	unsigned char* data(0);
+	unsigned int width(0), height(0);
+
+	format = FreeImage_GetFileType(path.c_str(), 0);
+
+	if (format == FIF_UNKNOWN) {
+		format = FreeImage_GetFIFFromFilename(path.c_str());
+	}
+	if (format == FIF_UNKNOWN) {
+		std::cout << "Uknown texture format: " << path << std::endl;
+		return 0;
+	}
+
+	if (FreeImage_FIFSupportsReading(format)) {
+		dib = FreeImage_Load(format, path.c_str());
+	}
+	if (!dib) {
+		std::cout << "Could not load texture: " << path << std::endl;
+		return 0;
+	}
+
+
+	data = FreeImage_GetBits(dib);
+
+	width = FreeImage_GetWidth(dib);
+	height = FreeImage_GetHeight(dib);
+
+
+	GLenum gl_color_type;
+	int bytes_per_color;
+	if (format == FIF_BMP || format == FIF_JPEG) {
+		gl_color_type = GL_BGR;
+		bytes_per_color = 3;
+	}
+	else if (format == FIF_PNG) {
+		gl_color_type = GL_RGBA;
+		bytes_per_color = 4;
+	}
+	else {
+		std::cout << "Unsupported color type: " << path << std::endl;
+		FreeImage_Unload(dib);
+		return 0;
+	}
+
+	GLuint texture_ID;
+	glGenTextures(1, &texture_ID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_ID);
+	int offsets[6][2] = { {2, 1}, {0, 1}, {1, 0}, {1, 2}, {1, 1}, {3, 1}};
+	unsigned char* face = new unsigned char[width / 4 * height * 3];
+	for (int i = 0; i < 6; i++) {
+		int offset_x = offsets[i][0] * width / 4 - 1;
+		int offset_y = offsets[i][1] * height / 4 - 1;
+
+		for (int j = 0; j < height / 4; j++) {
+			unsigned int memory_offset = offset_y + j * width + offset_x;
+			std::copy(data + memory_offset, data + memory_offset + width / 4, face + width / 4 * j);
+		}
+
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+			0, GL_RGBA, width / 4, height / 3, 0, gl_color_type, GL_UNSIGNED_BYTE, face
+		);
+	}
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	return texture_ID;
 }
@@ -175,21 +248,21 @@ bool Scene::load() {
 				std::string key;
 				sstream >> key;
 				key.pop_back();
-
+				trans::TransformationLeaf* t_leaf;
 				if (key == "scale") {
 					float x, y, z;
 					sstream >> x >> y >> z;
-					transformation->scale(x, y, z);
+					t_leaf = transformation->scale(x, y, z);
 				}
 				else if (key == "position") {
 					float x, y, z;
 					sstream >> x >> y >> z;
-					transformation->translate(x, y, z);
+					t_leaf = transformation->translate(x, y, z);
 				}
 				else if (key == "rotation") {
 					float x, y, z;
 					sstream >> x >> y >> z;
-					transformation->rotate(x, y, z);
+					t_leaf = transformation->rotate(x, y, z);
 				}
 				else if (key == "previous") {
 					int prev;
@@ -197,6 +270,13 @@ bool Scene::load() {
 					*transformation << *transformations[prev];
 				}
 				std::getline(description, line);
+
+				if (line.find("change") != std::string::npos) {
+					sstream = std::stringstream(line);
+					glm::vec3 change(0.0);
+					sstream >> key >> change.x >> change.y >> change.z;
+					transformation_controller->addChange(t_leaf, change);
+				}
 			}
 			// All parameters loaded, save transformation
 			transformations.push_back(transformation);
@@ -355,6 +435,21 @@ bool Scene::load() {
 			}
 			renderers.push_back(renderer);
 		}
+		// Load skybox
+		else if (line.find("Skybox") != std::string::npos) {
+			// Load parameters
+			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key, value;
+				sstream >> key >> value;
+				key.pop_back();
+				if (key == "name") {
+					GLuint skybox_ID = loadSkybox(path + value);
+				}
+				std::getline(description, line);
+			}
+		}
 	}
 
 	description.close();
@@ -367,5 +462,9 @@ std::vector<ObjectRenderer*> Scene::getRenderers() {
 
 std::vector<Program*> Scene::getPrograms() {
 	return programs;
+}
+
+void Scene::moveObjects(double delta_time) {
+	transformation_controller.move(delta_time);
 }
 

@@ -4,64 +4,75 @@
 
 #include <glm/glm.hpp>
 #include <vector>
+#include <unordered_map>
 
 namespace trans {
-	class Transformation {
-	private:
-		// Nested classes
-		class TransformationComponent {
-		public:
-			Transformation* parent;
-		protected:
-			float x, y, z;
-		public:
-			TransformationComponent(Transformation* parent, float x, float y, float z);
-			void set(float x, float y, float z);
-			virtual glm::mat4 applyTransformation(glm::mat4) = 0;
-		};
 
-		// Vector of transformations that depend on this transformation
-		std::vector<Transformation*> subscribers;
-		Transformation* previous_transformation;
-
-		std::vector<TransformationComponent*> transformations;
-
+	class TransformationComponent {
+	protected:
+		glm::mat4 calculated_transformation;
 		bool up_to_date;
-		glm::mat4 final_transformation;
+	public:
+		virtual glm::mat4 getTransformation() = 0;
+	};
+
+	class Transformation;
+
+	class TransformationLeaf : public TransformationComponent {
+	protected:
+		Transformation* parent;
+		float x, y, z;
+	public:
+		TransformationLeaf(Transformation* parent, float x, float y, float z);
+		void set(float x, float y, float z);
+		void add(float x, float y, float z);
+	};
+
+	class Position : public TransformationLeaf {
+	public:
+		Position(Transformation* parent, float x, float y, float z) : TransformationLeaf(parent, x, y ,z) {};
+		glm::mat4 getTransformation();
+	};
+
+	class Rotation : public TransformationLeaf {
+	public:
+		Rotation(Transformation* parent, float x, float y, float z) : TransformationLeaf(parent, x, y, z) {};
+		glm::mat4 getTransformation();
+	};
+
+	class Scale : public TransformationLeaf {
+	public:
+		Scale(Transformation* parent, float x, float y, float z) : TransformationLeaf(parent, x, y, z) {};
+		glm::mat4 getTransformation();
+	};
+
+	class Transformation : TransformationComponent {
+	private:
+		std::vector<Transformation*> parents;
+		// Vector of transformations that depend on this transformation
+		std::vector<TransformationComponent*> transformations;
 	public:
 		Transformation();
-		Transformation(Transformation* trans);
-		~Transformation();
 
 		glm::mat4 getTransformation();
 
 		void changed();
 
 		void operator<<(Transformation& b);
-		void operator<<(std::nullptr_t);
-
-		class Position : public TransformationComponent {
-		public:
-			Position(Transformation* parent, float x, float y, float z) : TransformationComponent(parent, x, y, z) {};
-			glm::mat4 applyTransformation(glm::mat4 mat);
-		};
-
-		class Rotation : public TransformationComponent {
-		public:
-			Rotation(Transformation* parent, float x, float y, float z) : TransformationComponent(parent, x, y, z) {};
-			glm::mat4 applyTransformation(glm::mat4 mat);
-		};
-
-		class Scale : public TransformationComponent {
-		public:
-			Scale(Transformation* parent, float x, float y, float z) : TransformationComponent(parent, x, y, z) {};
-			glm::mat4 applyTransformation(glm::mat4 mat);
-		};
+		void addParent(Transformation* t);
 
 		Position* translate(float x, float y, float z);
 		Rotation* rotate(float x, float y, float z);
 		Scale* scale(float x, float y, float z);
 		Scale* scale(float size);
+	};
+
+	class TransformationController {
+	private:
+		std::unordered_map<TransformationLeaf*, glm::vec3> changes;
+	public:
+		void addChange(TransformationLeaf* t, glm::vec3 change);
+		void move(double delta_time);
 	};
 }
 

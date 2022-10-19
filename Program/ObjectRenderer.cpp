@@ -27,6 +27,10 @@ void ObjectRenderer::setLight(glm::mat3 light) {
 	this->light = light;
 }
 
+void ObjectRenderer::setSkybox(Skybox* skybox) {
+	this->skybox = skybox;
+}
+
 void ObjectRenderer::addObject(Object* obj, trans::Transformation* trans) {
 	objects[obj].push_back(trans);
 }
@@ -43,6 +47,8 @@ void ObjectRenderer::render() {
 
 	// Use texture unit 0
 	glUniform1i(texture_sampler_ID, 0);
+
+
 
 	for (auto obj : objects) {
 		// Prepare object for rendering

@@ -13,6 +13,7 @@ private:
 	std::vector<ObjectRenderer*> renderers;
 	std::vector<Program*> programs;
 	std::vector<trans::Transformation*> transformations;
+	trans::TransformationController transformation_controller;
 
 	Object* parseObject(const aiScene* scene, aiString path);
 
@@ -23,6 +24,7 @@ public:
 	std::vector<ObjectRenderer*> getRenderers();
 	std::vector<Program*> getPrograms();
 
+	void moveObjects(double delta_time);
 
 };
 

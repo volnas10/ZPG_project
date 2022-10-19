@@ -45,6 +45,9 @@
     <ClCompile Include="Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Skybox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\FragmentShader.glsl">
@@ -54,6 +57,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\SunVertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="SkyboxVertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="SkyboxFragmentShader.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -80,6 +89,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Skybox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,26 +1,16 @@
-# Sun scale
 Transformation {
 	scale: 0.4 0.4 0.4
 }
-# Earth tilt and spin
 Transformation {
-	scale: 0.2 0.2 0.2
-	rotation: 0.0 0.0 0.0
-	change: 0.0 0.1 0.0
-	rotation: 0.0 0.0 23.0
-}
-# Move away from sun and orbit
-Transformation {
+	previous: 0
+	scale: 0.5 0.5 0.5
 	position: 10.0 0.0 0.0
-	rotation: 0.0 0.0 0.0
-	change: 0.0 0.3 0.0
 }
-# Complete Earth transformation
 Transformation {
-	transformations: [1, 2]
+	previous: 1
+	scale: 0.5 0.5 0.5
+	position: 10.0 0.0 0.0
 }
-# Complete 
-
 Object {
 	model: Sun.obj
 	path: Sun/
@@ -68,7 +58,4 @@ Renderer {
 	objects: [1, 2]
 	program: 0
 	light: 0
-}
-Skybox {
-	name: skybox.png
 }
