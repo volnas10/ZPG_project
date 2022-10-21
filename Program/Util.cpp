@@ -1,5 +1,5 @@
 #include <glm/gtc/matrix_transform.hpp>
-
+#include <iostream>
 #include "Util.h"
 
 namespace trans {
@@ -111,7 +111,7 @@ namespace trans {
 
 	void TransformationController::move(double delta_time) {
 		for (auto pair : changes) {
-			pair.first->add(pair.second.x, pair.second.y, pair.second.z);
+			pair.first->add(pair.second.x * delta_time, pair.second.y * delta_time, pair.second.z * delta_time);
 		}
 	}
 

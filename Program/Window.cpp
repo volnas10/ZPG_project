@@ -26,7 +26,7 @@ Window::Window(GLFWwindow* window) {
     camera = new Camera(glm::vec3(0.0f, 0.0f, -4.0f), 70.0f, 0.0f, 0.0f, (float) width / height);
     last_time = -1;
 
-    scene = new Scene("scene1");
+    scene = new Scene("scene2");
     scene->load();
     
 
@@ -50,7 +50,7 @@ void Window::start() {
         handleInput();
 
         // Render scene
-        for (ObjectRenderer* renderer : scene->getRenderers()) {
+        for (AbstractRenderer* renderer : scene->getRenderers()) {
             renderer->render();
         }
 

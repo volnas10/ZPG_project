@@ -15,7 +15,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="Program.cpp" />
-    <ClCompile Include="ObjectRenderer.cpp" />
+    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Skybox.cpp" />
@@ -24,16 +24,17 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\FragmentShader.glsl" />
+    <None Include="shaders\SkyboxFragmentShader.glsl" />
+    <None Include="shaders\SkyboxVertexShader.glsl" />
+    <None Include="shaders\SunFragmentShader.glsl" />
     <None Include="shaders\SunVertexShader.glsl" />
     <None Include="shaders\VertexShader.glsl" />
-    <None Include="SkyboxFragmentShader.glsl" />
-    <None Include="SkyboxVertexShader.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Program.h" />
-    <ClInclude Include="ObjectRenderer.h" />
+    <ClInclude Include="Renderer.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Skybox.h" />

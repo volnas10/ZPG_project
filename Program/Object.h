@@ -10,6 +10,10 @@
 #include <vector>
 #include <string>
 
+struct Material {
+
+};
+
 class Object {
 private:
 	std::vector<glm::vec3> vertices;

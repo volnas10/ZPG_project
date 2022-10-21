@@ -47,7 +47,6 @@ GLuint loadTexture(const char* filename) {
 		return 0;
 	}
 
-
 	data = FreeImage_GetBits(dib);
 
 	width = FreeImage_GetWidth(dib);
@@ -81,6 +80,48 @@ GLuint loadTexture(const char* filename) {
 	FreeImage_Unload(dib);
 
 	return texture_ID;
+}
+
+GLuint loadTextureFromMemory(aiTexture* t) {
+	FREE_IMAGE_FORMAT format = FIF_UNKNOWN;
+	FIBITMAP* dib(0);
+	unsigned char* data(0);
+	unsigned int width(0), height(0);
+
+	format = FreeImage_GetFIFFromFormat(t->achFormatHint);
+	FIMEMORY* memory = FreeImage_OpenMemory(reinterpret_cast<BYTE*>(t->pcData), t->mWidth * 4);
+	dib = FreeImage_LoadFromMemory(format, memory);
+
+	width = FreeImage_GetWidth(dib);
+	height = FreeImage_GetHeight(dib);
+	data = FreeImage_GetBits(dib);
+
+	GLenum gl_color_type;
+	if (format == FIF_BMP || format == FIF_JPEG) {
+		gl_color_type = GL_BGR;
+	}
+	else if (format == FIF_PNG) {
+		gl_color_type = GL_RGBA;
+	}
+	else {
+		FreeImage_Unload(dib);
+		return 0;
+	}
+
+	GLuint texture_ID;
+	glGenTextures(1, &texture_ID);
+	glBindTexture(GL_TEXTURE_2D, texture_ID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, gl_color_type, GL_UNSIGNED_BYTE, data);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	FreeImage_CloseMemory(memory);
+	FreeImage_Unload(dib);
+	return 0;
 }
 
 GLuint loadSkybox(std::string path) {
@@ -121,7 +162,7 @@ GLuint loadSkybox(std::string path) {
 		bytes_per_color = 3;
 	}
 	else if (format == FIF_PNG) {
-		gl_color_type = GL_RGBA;
+		gl_color_type = GL_BGRA;
 		bytes_per_color = 4;
 	}
 	else {
@@ -130,29 +171,31 @@ GLuint loadSkybox(std::string path) {
 		return 0;
 	}
 
+	int face_size = width / 4;
 	GLuint texture_ID;
 	glGenTextures(1, &texture_ID);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_ID);
 	int offsets[6][2] = { {2, 1}, {0, 1}, {1, 0}, {1, 2}, {1, 1}, {3, 1}};
-	unsigned char* face = new unsigned char[width / 4 * height * 3];
+	unsigned char* face = new unsigned char[face_size * face_size * bytes_per_color];
 	for (int i = 0; i < 6; i++) {
-		int offset_x = offsets[i][0] * width / 4 - 1;
-		int offset_y = offsets[i][1] * height / 4 - 1;
+		int offset_x = offsets[i][0] * face_size;
+		int offset_y = offsets[i][1] * face_size;
 
-		for (int j = 0; j < height / 4; j++) {
-			unsigned int memory_offset = offset_y + j * width + offset_x;
-			std::copy(data + memory_offset, data + memory_offset + width / 4, face + width / 4 * j);
+		for (int j = 0; j < face_size; j++) {
+			unsigned int memory_offset = (offset_y * width + j * width + offset_x) * bytes_per_color;
+			std::copy(data + memory_offset, data + memory_offset + face_size * bytes_per_color, face + face_size * j * bytes_per_color);
 		}
 
 		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-			0, GL_RGBA, width / 4, height / 3, 0, gl_color_type, GL_UNSIGNED_BYTE, face
+			0, GL_RGBA, face_size, face_size, 0, gl_color_type, GL_UNSIGNED_BYTE, face
 		);
 	}
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 	return texture_ID;
 }
@@ -179,7 +222,13 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 	std::vector<glm::vec3> normals;
 	std::vector<glm::vec2> uvs;
 	std::vector<unsigned int> indices;
-	GLuint texture = 0;
+	std::vector<GLuint> textures;
+
+	for (unsigned int t_index = 0; t_index < scene->mNumTextures; t_index++) {
+		aiTexture* texture = scene->mTextures[t_index];
+		textures.push_back(loadTextureFromMemory(texture));
+	}
+
 	for (unsigned int m_index = 0; m_index < scene->mNumMaterials; m_index++) {
 		aiMaterial* material = scene->mMaterials[m_index];
 		aiString name = material->GetName();
@@ -189,7 +238,7 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 			material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texture_name);
 			path.Append(texture_name.C_Str());
 			
-			texture = loadTexture(path.C_Str());
+			textures.push_back(loadTexture(path.C_Str()));
 			
 		}
 	}
@@ -212,7 +261,7 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		}
 	}
 
-	return new Object(vertices, normals, uvs, indices, texture);
+	return new Object(vertices, normals, uvs, indices, textures[0]);
 }
 
 Scene::Scene(std::string name) {
@@ -248,7 +297,7 @@ bool Scene::load() {
 				std::string key;
 				sstream >> key;
 				key.pop_back();
-				trans::TransformationLeaf* t_leaf;
+				trans::TransformationLeaf* t_leaf = nullptr;
 				if (key == "scale") {
 					float x, y, z;
 					sstream >> x >> y >> z;
@@ -262,20 +311,22 @@ bool Scene::load() {
 				else if (key == "rotation") {
 					float x, y, z;
 					sstream >> x >> y >> z;
-					t_leaf = transformation->rotate(x, y, z);
+					t_leaf = transformation->rotate(x / 57.29f, y / 57.29f, z / 57.29f); // (x / 180) * pi = x / 57.29
 				}
-				else if (key == "previous") {
-					int prev;
-					sstream >> prev;
-					*transformation << *transformations[prev];
+				else if (key == "transformations") {
+					std::vector<int> trans_indices;
+					parseArray(line, &trans_indices);
+					for (int i : trans_indices) {
+						*transformation << *transformations[i];
+					}
 				}
 				std::getline(description, line);
 
-				if (line.find("change") != std::string::npos) {
+				if (t_leaf != nullptr && line.find("change") != std::string::npos) {
 					sstream = std::stringstream(line);
 					glm::vec3 change(0.0);
 					sstream >> key >> change.x >> change.y >> change.z;
-					transformation_controller->addChange(t_leaf, change);
+					transformation_controller.addChange(t_leaf, change);
 				}
 			}
 			// All parameters loaded, save transformation
@@ -285,7 +336,7 @@ bool Scene::load() {
 		else if (line.find("Object") != std::string::npos) {
 			std::map<std::string, std::string> values;
 			std::vector<int> trans_indices;
-			values["path"] = "";
+			values["path"] = "/";
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
@@ -307,7 +358,6 @@ bool Scene::load() {
 			std::string object_path = path + values["path"];
 			const aiScene* scene = importer.ReadFile((object_path + values["model"]).c_str(),
 				aiProcess_Triangulate | aiProcess_JoinIdenticalVertices);
-
 			if (!scene) {
 				description.close();
 				std::cout << "Cannot load object " << values["model"] << std::endl;
@@ -445,7 +495,14 @@ bool Scene::load() {
 				sstream >> key >> value;
 				key.pop_back();
 				if (key == "name") {
+					std::vector<Shader> shaders;
+					shaders.push_back(Shader("SkyboxVertexShader.glsl", GL_VERTEX_SHADER));
+					shaders.push_back(Shader("SkyboxFragmentShader.glsl", GL_FRAGMENT_SHADER));
+					Program* skybox_program = new Program(shaders);
 					GLuint skybox_ID = loadSkybox(path + value);
+					SkyboxRenderer* renderer = new SkyboxRenderer(skybox_program, skybox_ID);
+					programs.push_back(skybox_program);
+					renderers.insert(renderers.begin(), 1, renderer);
 				}
 				std::getline(description, line);
 			}
@@ -456,7 +513,7 @@ bool Scene::load() {
 	return true;
 }
 
-std::vector<ObjectRenderer*> Scene::getRenderers() {
+std::vector<AbstractRenderer*> Scene::getRenderers() {
 	return renderers;
 }
 

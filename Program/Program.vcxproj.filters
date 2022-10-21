@@ -39,7 +39,7 @@
     <ClCompile Include="Util.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ObjectRenderer.cpp">
+    <ClCompile Include="Renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Scene.cpp">
@@ -59,10 +59,13 @@
     <None Include="shaders\SunVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="SkyboxVertexShader.glsl">
+    <None Include="shaders\SunFragmentShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="SkyboxFragmentShader.glsl">
+    <None Include="shaders\SkyboxFragmentShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\SkyboxVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -85,7 +88,7 @@
     <ClInclude Include="Util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ObjectRenderer.h">
+    <ClInclude Include="Renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">

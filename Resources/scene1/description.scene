@@ -6,20 +6,29 @@ Transformation {
 Transformation {
 	scale: 0.2 0.2 0.2
 	rotation: 0.0 0.0 0.0
-	change: 0.0 0.1 0.0
-	rotation: 0.0 0.0 23.0
+	change: 0.0 3.0 0.0
+	rotation: 0.0 0.0 -23.0
 }
 # Move away from sun and orbit
 Transformation {
-	position: 10.0 0.0 0.0
 	rotation: 0.0 0.0 0.0
-	change: 0.0 0.3 0.0
+	change: 0.0 -0.5 0.0
+	position: 18.0 0.0 0.0
+	rotation: 0.0 0.0 0.0
+	change: 0.0 0.5 0.0
 }
 # Complete Earth transformation
 Transformation {
 	transformations: [1, 2]
 }
-# Complete 
+# Move moon away from Earth and orbit
+Transformation {
+	scale: 0.07 0.07 0.07
+	position: 7.0 0.0 0.0
+	rotation: 0.0 0.0 0.0
+	change: 0.0 1.5 0.0
+	transformations: [2]
+}
 
 Object {
 	model: Sun.obj
@@ -29,17 +38,17 @@ Object {
 Object {
 	model: Earth.obj
 	path: Earth/
-	transformations: [1]
+	transformations: [3]
 }
 Object {
 	model: Moon.obj
 	path: Moon/
-	transformations: [2]
+	transformations: [4]
 }
 Light {
 	position: 0.0 0.0 0.0
 	color: 1.0 1.0 0.9
-	power: 60.0
+	power: 80.0
 }
 Shader {
 	type: vertex
@@ -53,11 +62,15 @@ Shader {
 	type: fragment
 	name: FragmentShader.glsl
 }
+Shader {
+	type: fragment
+	name: SunFragmentShader.glsl
+}
 Program {
 	shaders: [0, 2]
 }
 Program {
-	shaders: [1, 2]
+	shaders: [1, 3]
 }
 Renderer {
 	objects: [0]

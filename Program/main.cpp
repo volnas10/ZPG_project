@@ -45,6 +45,8 @@ int main() {
 		glfwTerminate();
 		return -1;
 	}
+	// Enable cube map for skybox
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	// Enable depth test
 	glEnable(GL_DEPTH_TEST);
 	// Accept fragment if it closer to the camera than the former one

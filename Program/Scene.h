@@ -3,14 +3,14 @@
 #define SCENE_H
 
 #include <assimp/scene.h>
-#include "ObjectRenderer.h"
+#include "Renderer.h"
 #include "Util.h"
 
 class Scene
 {
 private:
 	std::string name;
-	std::vector<ObjectRenderer*> renderers;
+	std::vector<AbstractRenderer*> renderers;
 	std::vector<Program*> programs;
 	std::vector<trans::Transformation*> transformations;
 	trans::TransformationController transformation_controller;
@@ -21,7 +21,7 @@ public:
 	Scene(std::string name);
 	bool load();
 
-	std::vector<ObjectRenderer*> getRenderers();
+	std::vector<AbstractRenderer*> getRenderers();
 	std::vector<Program*> getPrograms();
 
 	void moveObjects(double delta_time);

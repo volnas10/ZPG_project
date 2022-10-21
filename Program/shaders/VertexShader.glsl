@@ -20,7 +20,7 @@ uniform mat3 light_matrix;
 
 void main(){
 	
-	gl_Position =  projection_matrix * view_matrix * model_matrix * vec4(vertex_position, 1);
+	gl_Position = projection_matrix * view_matrix * model_matrix * vec4(vertex_position, 1);
 	
 	// Position of the vertex, in worldspace : M * position
 	vertex_position_worldspace = (model_matrix * vec4(vertex_position,1)).xyz;
