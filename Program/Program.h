@@ -25,6 +25,7 @@ public:
 	void notify(glm::mat4 view_matrix, glm::mat4 projection_matrix);
 
 	GLuint getUniformLocation(std::string name);
+	GLuint getUniformBlockLocation(std::string name, int pos);
 };
 
 #endif

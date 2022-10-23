@@ -68,6 +68,12 @@
     <None Include="shaders\SkyboxVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shaders\BlenderFragmentShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\BlenderVertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Program.h">

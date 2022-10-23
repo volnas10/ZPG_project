@@ -23,6 +23,8 @@
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\BlenderFragmentShader.glsl" />
+    <None Include="shaders\BlenderVertexShader.glsl" />
     <None Include="shaders\FragmentShader.glsl" />
     <None Include="shaders\SkyboxFragmentShader.glsl" />
     <None Include="shaders\SkyboxVertexShader.glsl" />

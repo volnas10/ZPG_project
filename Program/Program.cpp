@@ -61,3 +61,8 @@ GLuint Program::getUniformLocation(std::string name) {
 	return glGetUniformLocation(program_ID, name.data());
 }
 
+GLuint Program::getUniformBlockLocation(std::string name, int pos) {
+	GLuint loc = glGetUniformBlockIndex(program_ID, name.c_str());
+	glUniformBlockBinding(program_ID, loc, pos);
+	return loc;
+}

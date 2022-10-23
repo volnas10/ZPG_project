@@ -21,7 +21,13 @@ ObjectRenderer::ObjectRenderer(Program* program) : AbstractRenderer(program) {
 
 	model_matrix_ID = program->getUniformLocation("model_matrix");
 	light_ID = program->getUniformLocation("light_matrix");
-	texture_sampler_ID = program->getUniformLocation("texture_sampler");
+
+    // We can have up to 16 textures per 1 object (it could be more if needed)
+	texture_sampler_ID = program->getUniformLocation("texture_samplers");
+    const GLint units[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    glUniform1iv(texture_sampler_ID, 16, units);
+
+    materials_ID = program->getUniformBlockLocation("materials", 0);
 }
 
 void ObjectRenderer::setLight(glm::mat3 light) {
@@ -41,11 +47,6 @@ void ObjectRenderer::render() {
 
 	// Set light
 	glUniformMatrix3fv(light_ID, 1, GL_FALSE, &light[0][0]);
-
-	// Use texture unit 0
-	glUniform1i(texture_sampler_ID, GL_TEXTURE0);
-
-
 
 	for (auto obj : objects) {
 		// Prepare object for rendering

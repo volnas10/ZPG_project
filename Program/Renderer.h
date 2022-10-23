@@ -26,7 +26,7 @@ private:
 	std::map<Object*, std::vector<trans::Transformation*>> objects;
 	glm::mat3 light;
 
-	GLuint model_matrix_ID, light_ID;
+	GLuint model_matrix_ID, light_ID, materials_ID;
 public:
 	ObjectRenderer(Program* program);
 	void setLight(glm::mat3 light);

@@ -88,9 +88,16 @@ GLuint loadTextureFromMemory(aiTexture* t) {
 	unsigned char* data(0);
 	unsigned int width(0), height(0);
 
-	format = FreeImage_GetFIFFromFormat(t->achFormatHint);
-	FIMEMORY* memory = FreeImage_OpenMemory(reinterpret_cast<BYTE*>(t->pcData), t->mWidth * 4);
+	std::string format_name(t->achFormatHint);
+	// FreeImage doesn't recognize .jpg
+	if (format_name == "jpg") {
+		format_name = "jpeg";
+	}
+
+	format = FreeImage_GetFIFFromFormat(format_name.c_str());
+	FIMEMORY* memory = FreeImage_OpenMemory(reinterpret_cast<BYTE*>(t->pcData), t->mWidth);
 	dib = FreeImage_LoadFromMemory(format, memory);
+	FreeImage_CloseMemory(memory);
 
 	width = FreeImage_GetWidth(dib);
 	height = FreeImage_GetHeight(dib);
@@ -119,9 +126,8 @@ GLuint loadTextureFromMemory(aiTexture* t) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	FreeImage_CloseMemory(memory);
 	FreeImage_Unload(dib);
-	return 0;
+	return texture_ID;
 }
 
 GLuint loadSkybox(std::string path) {
@@ -222,7 +228,9 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 	std::vector<glm::vec3> normals;
 	std::vector<glm::vec2> uvs;
 	std::vector<unsigned int> indices;
+	std::vector<unsigned int> material_indices;
 	std::vector<GLuint> textures;
+	std::vector<Material> materials;
 
 	for (unsigned int t_index = 0; t_index < scene->mNumTextures; t_index++) {
 		aiTexture* texture = scene->mTextures[t_index];
@@ -231,37 +239,100 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 
 	for (unsigned int m_index = 0; m_index < scene->mNumMaterials; m_index++) {
 		aiMaterial* material = scene->mMaterials[m_index];
-		aiString name = material->GetName();
+
+		// Extract properties from assimp material
+		Material my_material;
+		aiColor3D color;
+		float val;
+
+		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
+			my_material.diffuse_color = glm::vec4(color.r, color.g, color.b, -1);
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
+			my_material.ambient_color = glm::vec4(color.r, color.g, color.b, 0);
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_EMISSIVE, color)) {
+			my_material.emissive_color = glm::vec4(color.r, color.g, color.b, 0);
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
+			my_material.specular_color = glm::vec4(color.r, color.g, color.b, 0);
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_TRANSPARENT, color)) {
+			val = 1;
+			material->Get(AI_MATKEY_OPACITY, val);
+			my_material.transparent_color = glm::vec4(color.r, color.g, color.b, val);
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_REFLECTIVE, color)) {
+			val = 0;
+			material->Get(AI_MATKEY_REFLECTIVITY, val);
+			my_material.reflective_color = glm::vec4(color.r, color.g, color.b, val);
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_REFRACTI, val)) {
+			my_material.refraction_index = val;
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_SHININESS, val)) {
+			my_material.shininess = val;
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_SHININESS_STRENGTH, val)) {
+			my_material.shininess_strength = val;
+		}
+
 		unsigned int texture_count = material->GetTextureCount(aiTextureType_DIFFUSE);
 		if (texture_count > 0) {
 			aiString texture_name;
 			material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texture_name);
-			path.Append(texture_name.C_Str());
-			
-			textures.push_back(loadTexture(path.C_Str()));
-			
+			// Embedded texture
+			if (texture_name.C_Str()[0] == '*') {
+				my_material.diffuse_color.a = atoi(texture_name.C_Str() + 1);
+			}
+			// Texture from file
+			else {
+				path.Append(texture_name.C_Str());
+				GLuint id = loadTexture(path.C_Str());
+				if (id > 0) {
+					textures.push_back(id);
+					my_material.diffuse_color.a = textures.size() - 1;
+				}
+			}
 		}
+
+		materials.push_back(my_material);
 	}
 
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
 		aiMesh* mesh = scene->mMeshes[i];
+		unsigned int index_offset = vertices.size();
 		for (unsigned int v_index = 0; v_index < mesh->mNumVertices; v_index++) {
 			aiVector3D vertex = mesh->mVertices[v_index];
 			aiVector3D normal = mesh->mNormals[v_index];
-			aiVector3D uv = mesh->mTextureCoords[0][v_index];
 			vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
 			normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
-			uvs.push_back(glm::vec2(uv.x, uv.y));
+			material_indices.push_back(mesh->mMaterialIndex);
 		}
+		if (mesh->HasTextureCoords(0)) {
+			for (unsigned int uv_index = 0; uv_index < mesh->mNumVertices; uv_index++) {
+				aiVector3D uv = mesh->mTextureCoords[0][uv_index];
+				uvs.push_back(glm::vec2(uv.x, uv.y));
+			}
+		}
+		else {
+			uvs.resize(uvs.size() + mesh->mNumVertices, glm::vec2(0.0, 0.0));
+		}
+
 		for (unsigned int f_index = 0; f_index < mesh->mNumFaces; f_index++) {
 			aiFace face = mesh->mFaces[f_index];
 			for (int idx = 0; idx < 3; idx++) {
-				indices.push_back(face.mIndices[idx]);
+				indices.push_back(index_offset + face.mIndices[idx]);
 			}
 		}
 	}
 
-	return new Object(vertices, normals, uvs, indices, textures[0]);
+	for (int i = 0; i < scene->mRootNode->mNumChildren; i++) {
+		aiNode* node = scene->mRootNode->mChildren[i];
+		std::cout << "test" << std::endl;
+	}
+
+	return new Object(vertices, normals, uvs, indices, textures, materials, material_indices);
 }
 
 Scene::Scene(std::string name) {
@@ -369,6 +440,9 @@ bool Scene::load() {
 			std::vector<trans::Transformation*> object_transformations;
 			for (int idx : trans_indices) {
 				object_transformations.push_back(transformations[idx]);
+			}
+			if (object_transformations.size() == 0) {
+				object_transformations.push_back(new trans::Transformation());
 			}
 			objects.push_back(std::make_pair(obj, object_transformations));
 		}
