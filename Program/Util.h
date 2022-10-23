@@ -46,6 +46,12 @@ namespace trans {
 		glm::mat4 getTransformation();
 	};
 
+	class MatTrans : public TransformationComponent {
+	public:
+		MatTrans(glm::mat4);
+		glm::mat4 getTransformation();
+	};
+
 	class Transformation : TransformationComponent {
 	private:
 		std::vector<Transformation*> parents;
@@ -65,6 +71,7 @@ namespace trans {
 		Rotation* rotate(float x, float y, float z);
 		Scale* scale(float x, float y, float z);
 		Scale* scale(float size);
+		void addMatrix(glm::mat4 mat);
 	};
 
 	class TransformationController {

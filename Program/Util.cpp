@@ -80,28 +80,37 @@ namespace trans {
 
 	void Transformation::addParent(Transformation* t) {
 		parents.push_back(t);
+		up_to_date = false;
 	}
 
 	Position* Transformation::translate(float x, float y, float z) {
 		Position* pos = new Position(this, x, y, z);
 		transformations.push_back(pos);
+		up_to_date = false;
 		return pos;
 	}
 
 	Rotation* Transformation::rotate(float x, float y, float z) {
 		Rotation* rot = new Rotation(this, x, y, z);
 		transformations.push_back(rot);
+		up_to_date = false;
 		return rot;
 	}
 
 	Scale* Transformation::scale(float x, float y, float z) {
 		Scale* s = new Scale(this, x, y, z);
 		transformations.push_back(s);
+		up_to_date = false;
 		return s;
 	}
 
 	Scale* Transformation::scale(float size) {
 		return scale(size, size, size);
+	}
+
+	void Transformation::addMatrix(glm::mat4 mat) {
+		transformations.push_back(new MatTrans(mat));
+		up_to_date = false;
 	}
 
 
@@ -111,8 +120,20 @@ namespace trans {
 
 	void TransformationController::move(double delta_time) {
 		for (auto pair : changes) {
-			pair.first->add(pair.second.x * delta_time, pair.second.y * delta_time, pair.second.z * delta_time);
+			pair.first->add(
+				(float) pair.second.x * delta_time,
+				(float) pair.second.y * delta_time,
+				(float) pair.second.z * delta_time);
 		}
+	}
+
+	MatTrans::MatTrans(glm::mat4 mat) {
+		calculated_transformation = mat;
+		up_to_date = true;
+	}
+
+	glm::mat4 MatTrans::getTransformation() {
+		return calculated_transformation;
 	}
 
 }

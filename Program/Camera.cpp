@@ -49,7 +49,7 @@ void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
 	position += right * dir.x;
 	position.y += dir.y;
 
-	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 100.0f);
+	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 200.0f);
 
 	view_matrix = glm::lookAt(
 	    position,

@@ -1,9 +1,9 @@
 Transformation {
-	scale: 0.2 0.2 0.2
+	scale: 0.5 0.5 0.5
 }
 Object {
-	model: bmw27.blend
-transformations: [0]
+	model: bmw27.fbx
+	transformations: [0]
 }
 Shader {
 	type: vertex
@@ -17,9 +17,9 @@ Program {
 	shaders: [0, 1]
 }
 Light {
-	position: 2.0 8.0 2.0
-	color: 1.0 1.0 1.0
-	power: 50.0
+	position: 6 35 -10
+	color: 1 1 1
+	power: 40
 }
 Renderer {
 	objects: [0]

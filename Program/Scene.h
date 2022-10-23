@@ -15,7 +15,7 @@ private:
 	std::vector<trans::Transformation*> transformations;
 	trans::TransformationController transformation_controller;
 
-	Object* parseObject(const aiScene* scene, aiString path);
+	object::Object* parseObject(const aiScene* scene, aiString path);
 
 public:
 	Scene(std::string name);

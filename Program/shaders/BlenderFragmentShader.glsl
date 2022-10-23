@@ -1,6 +1,5 @@
 #version 330 core
 
-flat in int material_index;
 in vec2 UV;
 in vec3 vertex_position_worldspace;
 in vec3 normal_cameraspace;
@@ -9,7 +8,7 @@ in vec3 light_direction_cameraspace;
 
 out vec3 color;
 
-uniform sampler2D texture_samplers[16];
+uniform sampler2D texture_sampler;
 uniform mat3 light_matrix;
 
 //layout(std140) uniform Material {
@@ -67,7 +66,7 @@ void main(){
 		// Ambient : simulates indirect lighting
 		MaterialAmbientColor +
 		// Diffuse : "color" of the object
-		MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) +
+		MaterialDiffuseColor * LightColor * LightPower * cosTheta / distance +
 		// Specular : reflective highlight, like a mirror
-		MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
+		MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / distance;
 }

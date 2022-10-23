@@ -28,6 +28,7 @@ GLuint loadTexture(const char* filename) {
 	FIBITMAP* dib(0);
 	unsigned char* data(0);
 	unsigned int width(0), height(0);
+	std::cout << "Loading texture from file: " << filename << std::endl;
 
 	format = FreeImage_GetFileType(filename, 0);
 
@@ -88,6 +89,8 @@ GLuint loadTextureFromMemory(aiTexture* t) {
 	unsigned char* data(0);
 	unsigned int width(0), height(0);
 
+	std::cout << "Loading texture from memory: " << t->mFilename.C_Str() << std::endl;
+
 	std::string format_name(t->achFormatHint);
 	// FreeImage doesn't recognize .jpg
 	if (format_name == "jpg") {
@@ -98,6 +101,11 @@ GLuint loadTextureFromMemory(aiTexture* t) {
 	FIMEMORY* memory = FreeImage_OpenMemory(reinterpret_cast<BYTE*>(t->pcData), t->mWidth);
 	dib = FreeImage_LoadFromMemory(format, memory);
 	FreeImage_CloseMemory(memory);
+
+	if (!dib) {
+		std::cout << "Could not load texture: " << t->mFilename.C_Str() << std::endl;
+		return 0;
+	}
 
 	width = FreeImage_GetWidth(dib);
 	height = FreeImage_GetHeight(dib);
@@ -119,6 +127,7 @@ GLuint loadTextureFromMemory(aiTexture* t) {
 	glGenTextures(1, &texture_ID);
 	glBindTexture(GL_TEXTURE_2D, texture_ID);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, gl_color_type, GL_UNSIGNED_BYTE, data);
+
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -222,26 +231,48 @@ void parseArray(std::string line, std::vector<int>* storage) {
 	}
 }
 
+void nodeBuilder(aiNode* node, trans::Transformation* parent_trans,
+	std::map<unsigned int, std::vector<trans::Transformation*>>* mesh_transformations) {
 
-Object* Scene::parseObject(const aiScene* scene, aiString path) {
-	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec3> normals;
-	std::vector<glm::vec2> uvs;
-	std::vector<unsigned int> indices;
-	std::vector<unsigned int> material_indices;
+	if (node->mNumChildren == 0 && node->mNumMeshes == 0) return;
+	aiMatrix4x4 transformation = node->mTransformation;
+	glm::mat4 matrix(
+		transformation.a1, transformation.a2, transformation.a3, transformation.a4,
+		transformation.b1, transformation.b2, transformation.b3, transformation.b4,
+		transformation.c1, transformation.c2, transformation.c3, transformation.c4,
+		transformation.d1, transformation.d2, transformation.d3, transformation.d4);
+
+	trans::Transformation* t = new trans::Transformation();
+	t->addMatrix(matrix);
+	if (parent_trans != nullptr) {
+		*t << *parent_trans;
+	}
+	for (int i = 0; i < node->mNumMeshes; i++) {
+		(*mesh_transformations)[node->mMeshes[i]].push_back(t);
+	}
+
+	for (int i = 0; i < node->mNumChildren; i++) {
+		nodeBuilder(node->mChildren[i], t, mesh_transformations);
+	}
+}
+
+object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 	std::vector<GLuint> textures;
-	std::vector<Material> materials;
+	std::vector<object::Material> materials;
+	object::Object* object = new object::Object();
 
+	// Load tetxures from memory
 	for (unsigned int t_index = 0; t_index < scene->mNumTextures; t_index++) {
 		aiTexture* texture = scene->mTextures[t_index];
 		textures.push_back(loadTextureFromMemory(texture));
 	}
 
+	// Parse materials
 	for (unsigned int m_index = 0; m_index < scene->mNumMaterials; m_index++) {
 		aiMaterial* material = scene->mMaterials[m_index];
 
 		// Extract properties from assimp material
-		Material my_material;
+		object::Material my_material;
 		aiColor3D color;
 		float val;
 
@@ -277,13 +308,14 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 			my_material.shininess_strength = val;
 		}
 
+		// Check if material has textures
 		unsigned int texture_count = material->GetTextureCount(aiTextureType_DIFFUSE);
 		if (texture_count > 0) {
 			aiString texture_name;
 			material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texture_name);
 			// Embedded texture
 			if (texture_name.C_Str()[0] == '*') {
-				my_material.diffuse_color.a = atoi(texture_name.C_Str() + 1);
+				my_material.diffuse_color.a = textures[atoi(texture_name.C_Str() + 1)];
 			}
 			// Texture from file
 			else {
@@ -291,7 +323,7 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 				GLuint id = loadTexture(path.C_Str());
 				if (id > 0) {
 					textures.push_back(id);
-					my_material.diffuse_color.a = textures.size() - 1;
+					my_material.diffuse_color.a = textures[textures.size() - 1];
 				}
 			}
 		}
@@ -299,15 +331,19 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		materials.push_back(my_material);
 	}
 
+	// Parse meshes
 	for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
 		aiMesh* mesh = scene->mMeshes[i];
-		unsigned int index_offset = vertices.size();
+		std::vector<glm::vec3> vertices;
+		std::vector<glm::vec3> normals;
+		std::vector<glm::vec2> uvs;
+		std::vector<unsigned int> indices;
+
 		for (unsigned int v_index = 0; v_index < mesh->mNumVertices; v_index++) {
 			aiVector3D vertex = mesh->mVertices[v_index];
 			aiVector3D normal = mesh->mNormals[v_index];
 			vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
 			normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
-			material_indices.push_back(mesh->mMaterialIndex);
 		}
 		if (mesh->HasTextureCoords(0)) {
 			for (unsigned int uv_index = 0; uv_index < mesh->mNumVertices; uv_index++) {
@@ -315,24 +351,26 @@ Object* Scene::parseObject(const aiScene* scene, aiString path) {
 				uvs.push_back(glm::vec2(uv.x, uv.y));
 			}
 		}
-		else {
-			uvs.resize(uvs.size() + mesh->mNumVertices, glm::vec2(0.0, 0.0));
-		}
 
 		for (unsigned int f_index = 0; f_index < mesh->mNumFaces; f_index++) {
 			aiFace face = mesh->mFaces[f_index];
 			for (int idx = 0; idx < 3; idx++) {
-				indices.push_back(index_offset + face.mIndices[idx]);
+				indices.push_back(face.mIndices[idx]);
 			}
 		}
+		object->addMesh(vertices, normals, uvs, indices, materials[mesh->mMaterialIndex]);
 	}
 
-	for (int i = 0; i < scene->mRootNode->mNumChildren; i++) {
-		aiNode* node = scene->mRootNode->mChildren[i];
-		std::cout << "test" << std::endl;
+	// Build the object from meshes and transformations
+	aiNode* root_node = scene->mRootNode;
+
+	std::map<unsigned int, std::vector<trans::Transformation*>> mesh_transformations;
+	nodeBuilder(root_node, nullptr, &mesh_transformations);
+	for (auto pair : mesh_transformations) {
+		object->transformMesh(pair.first, pair.second);
 	}
 
-	return new Object(vertices, normals, uvs, indices, textures, materials, material_indices);
+	return object;
 }
 
 Scene::Scene(std::string name) {
@@ -351,7 +389,7 @@ bool Scene::load() {
 	std::vector<trans::Transformation*> transformations;
 	std::vector<glm::mat3> lights;
 	std::vector<Shader> shaders;
-	std::vector<std::pair<Object*, std::vector<trans::Transformation*>>> objects;
+	std::vector<std::pair<object::Object*, std::vector<trans::Transformation*>>> objects;
 	
 	Importer importer;
 	std::string line;
@@ -428,14 +466,15 @@ bool Scene::load() {
 
 			std::string object_path = path + values["path"];
 			const aiScene* scene = importer.ReadFile((object_path + values["model"]).c_str(),
-				aiProcess_Triangulate | aiProcess_JoinIdenticalVertices);
+				aiProcess_Triangulate | aiProcess_PreTransformVertices);
 			if (!scene) {
 				description.close();
 				std::cout << "Cannot load object " << values["model"] << std::endl;
+				std::cout << importer.GetErrorString() << std::endl;
 				continue;
 			}
 
-			Object* obj = parseObject(scene, aiString(object_path));
+			object::Object* obj = parseObject(scene, aiString(object_path));
 			obj->name = values["model"];
 			std::vector<trans::Transformation*> object_transformations;
 			for (int idx : trans_indices) {
@@ -445,6 +484,21 @@ bool Scene::load() {
 				object_transformations.push_back(new trans::Transformation());
 			}
 			objects.push_back(std::make_pair(obj, object_transformations));
+
+			// Load lights from scene if present
+			//if (scene->HasLights()) {
+			//	for (int i = 0; i < scene->mNumLights; i++) {
+			//		aiLight* light = scene->mLights[i];
+			//		aiVector3D pos = light->mPosition;
+			//		aiColor3D color = light->mColorDiffuse;
+			//		float power = light->mAttenuationConstant;
+			//		glm::mat3 light_matrix(0.0);
+			//		light_matrix[0] = glm::vec3(pos.x, pos.y, pos.z);
+			//		light_matrix[1] = glm::vec3(color.r, color.g, color.b);
+			//		light_matrix[2][0] = power;
+			//		lights.push_back(light_matrix);
+			//	}
+			//}
 		}
 		// Load light
 		else if (line.find("Light") != std::string::npos) {
@@ -469,7 +523,7 @@ bool Scene::load() {
 				}
 				std::getline(description, line);
 			}
-			glm::mat3 light;
+			glm::mat3 light(0.0);
 			light[0] = light_pos;
 			light[1] = light_color;
 			light[2][0] = light_power;

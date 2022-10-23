@@ -35,7 +35,7 @@ int main() {
 	}
 
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1);
+	glfwSwapInterval(1); // V-SYNC
 	glClearColor(0.0f, 0.0f, 0.2f, 0.0f);
 
 	glewExperimental = GL_TRUE;

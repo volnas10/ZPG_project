@@ -23,16 +23,16 @@ public:
 class ObjectRenderer : public AbstractRenderer {
 private:
 	// One object can be displayed multiple times with different transformations
-	std::map<Object*, std::vector<trans::Transformation*>> objects;
+	std::map<object::Object*, std::vector<trans::Transformation*>> objects;
 	glm::mat3 light;
 
-	GLuint model_matrix_ID, light_ID, materials_ID;
+	GLuint model_matrix_ID, light_ID, mesh_matrix_ID;
 public:
 	ObjectRenderer(Program* program);
 	void setLight(glm::mat3 light);
 
-	void addObject(Object* obj, trans::Transformation* transformation);
-	void addObject(Object* obj, std::vector<trans::Transformation*> transformations);
+	void addObject(object::Object* obj, trans::Transformation* transformation);
+	void addObject(object::Object* obj, std::vector<trans::Transformation*> transformations);
 
 	void render();
 };
