@@ -1,5 +1,7 @@
 #include "Object.h"
 
+#include <iostream>
+
 namespace object {
 	Mesh* object::Object::addMesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
 		std::vector<unsigned int> indices, Material material) {
@@ -17,7 +19,7 @@ namespace object {
 		meshes[index].second = transformations;
 	}
 
-	bool Object::prepareMesh(size_t* size, GLuint mesh_trans_uniform) {
+	bool Object::prepareMesh(size_t* size, GLuint mesh_trans_uniform, GLuint material_uniform) {
 		if (next_trans == 0) {
 			meshes[next_mesh].first->prepareForDraw();
 		}
@@ -71,6 +73,10 @@ namespace object {
 		glGenBuffers(1, &VIO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
+		glGenBuffers(1, &material_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, material_buffer);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(material), &material, GL_DYNAMIC_DRAW);
 	}
 
 	void Mesh::prepareForDraw() {
@@ -95,6 +101,7 @@ namespace object {
 		}
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
+		glBindBufferBase(GL_UNIFORM_BUFFER, 0, material_buffer);
 	}
 	size_t Mesh::size() {
 		return indices.size();

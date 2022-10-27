@@ -24,6 +24,7 @@ ObjectRenderer::ObjectRenderer(Program* program) : AbstractRenderer(program) {
 	light_ID = program->getUniformLocation("light_matrix");
 	texture_sampler_ID = program->getUniformLocation("texture_sampler");
     mesh_matrix_ID = program->getUniformLocation("mesh_matrix");
+    material_ID = program->getUniformBlockLocation("material", 0);
 
 }
 
@@ -55,7 +56,9 @@ void ObjectRenderer::render() {
             // Draw all meshes
             while (true) {
                 size_t index_count;
-                bool has_more = obj.first->prepareMesh(&index_count, mesh_matrix_ID);
+                glActiveTexture(GL_TEXTURE0);
+                bool has_more = obj.first->prepareMesh(&index_count, mesh_matrix_ID, material_ID);
+                glUniform1i(texture_sampler_ID, GL_TEXTURE0);
                 glDrawElements(GL_TRIANGLES, (GLsizei)index_count, GL_UNSIGNED_INT, NULL);
                 if (!has_more) break;
             }

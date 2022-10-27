@@ -2,7 +2,7 @@ Transformation {
 	scale: 0.5 0.5 0.5
 }
 Object {
-	model: bmw27.obj
+	model: bmw27.fbx
 	transformations: [0]
 }
 Shader {

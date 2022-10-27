@@ -319,8 +319,9 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 			}
 			// Texture from file
 			else {
-				path.Append(texture_name.C_Str());
-				GLuint id = loadTexture(path.C_Str());
+				aiString full_path = path;
+				full_path.Append(texture_name.C_Str());
+				GLuint id = loadTexture(full_path.C_Str());
 				if (id > 0) {
 					textures.push_back(id);
 					my_material.diffuse_color.a = textures[textures.size() - 1];
@@ -445,7 +446,6 @@ bool Scene::load() {
 		else if (line.find("Object") != std::string::npos) {
 			std::map<std::string, std::string> values;
 			std::vector<int> trans_indices;
-			values["path"] = "/";
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {

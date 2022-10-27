@@ -6,22 +6,22 @@ in vec3 normal_cameraspace;
 in vec3 eye_direction_cameraspace;
 in vec3 light_direction_cameraspace;
 
-out vec3 color;
+out vec4 color;
 
 uniform sampler2D texture_sampler;
 uniform mat3 light_matrix;
 
-//layout(std140) uniform Material {
-//	vec4 diffuse_color; // r, g, b | texture_index
-//	vec4 specular_color;
-//	vec4 ambient_color;
-//	vec4 emissive_color;
-//	vec4 transparent_color; // r, g, b | opacity
-//	vec4 reflective_color; // r, g, b | reflectivity
-//	float refraction_index;
-//	float shininess;
-//	float shininess_strength;
-//} materials[64];
+layout(std140) uniform Material {
+	vec4 diffuse_color; // r, g, b | texture_index
+	vec4 specular_color;
+	vec4 ambient_color;
+	vec4 emissive_color;
+	vec4 transparent_color; // r, g, b | opacity
+	vec4 reflective_color; // r, g, b | reflectivity
+	float refraction_index;
+	float shininess;
+	float shininess_strength;
+} material;
 
 void main(){
 
@@ -36,16 +36,16 @@ void main(){
 	vec3 MaterialSpecularColor = vec3(0.1,0.1,0.1);
 
 	// If material has texture, use it
-	//vec3 diffuse_color;
-	//vec3 ambient_color;
-	//if (material.diffuse_color.w >= 0) {
-	//	diffuse_color = texture(texture_samplers[material.diffuse_color.w], UV).rgb;
-	//	ambient_color = vec3(0.1,0.1,0.1) * diffuse_color;
-	//}
-	//else {
-	//	diffuse_color = material.diffuse_color.xyz;
-	//	ambient_color = material.ambient_color.xyz;
-	//}
+	vec3 diffuse_color;
+	vec3 ambient_color;
+	if (material.diffuse_color.w >= 0) {
+		diffuse_color = texture(texture_sampler, UV).rgb;
+		ambient_color = vec3(0.1,0.1,0.1) * diffuse_color;
+	}
+	else {
+		diffuse_color = material.diffuse_color.xyz;
+		ambient_color = material.ambient_color.xyz;
+	}
 
 	// Distance to the light
 	float distance = length( light_position - vertex_position_worldspace );
@@ -62,11 +62,13 @@ void main(){
 	//color += diffuse_color * LightColor * LightPower * cosTheta / (distance * distance);
 	//color += mix(material.specular_color.xyz, LightColor, 0.5) * LightPower *
 	//			pow(cosAlpha, material.shininess) / (distance*distance) * material.shininess_strength;
-	color = 
+	color.rgb = 
 		// Ambient : simulates indirect lighting
-		MaterialAmbientColor +
+		ambient_color +
 		// Diffuse : "color" of the object
-		MaterialDiffuseColor * LightColor * LightPower * cosTheta / distance +
+		diffuse_color * LightColor * LightPower * cosTheta / distance +
 		// Specular : reflective highlight, like a mirror
 		MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / distance;
+
+	color.a = material.transparent_color.a;
 }

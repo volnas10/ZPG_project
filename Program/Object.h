@@ -37,6 +37,7 @@ namespace object {
 
 		GLuint VBO, VIO;
 		GLuint normal_buffer, uv_buffer;
+		GLuint material_buffer;
 	public:
 		Mesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
 			std::vector<unsigned int> indices, Material material);
@@ -59,7 +60,7 @@ namespace object {
 		void transformMesh(unsigned int index, std::vector<trans::Transformation*> transformations);
 
 		// Each call prepares one mesh, after last meshes has been rendered, returns false
-		bool prepareMesh(size_t* size, GLuint mesh_trans_uniform);
+		bool prepareMesh(size_t* size, GLuint mesh_trans_uniform, GLuint material_uniform);
 	};
 }
 
