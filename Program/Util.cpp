@@ -136,4 +136,101 @@ namespace trans {
 		return calculated_transformation;
 	}
 
+	TransformationGenerator::TransformationGenerator() {
+		min_distance = 0;
+	}
+
+	void TransformationGenerator::setMinDistance(float distance) {
+		min_distance = distance;
+	}
+
+	void TransformationGenerator::addObstacles(std::vector<glm::vec3> obstacles) {
+		for (glm::vec3 obstacle : obstacles) {
+			this->obstacles.push_back(obstacle);
+		}
+	}
+
+	std::vector<glm::vec3> TransformationGenerator::getObstacles() {
+		return obstacles;
+	}
+
+	std::vector<Transformation*> TransformationGenerator::generateTransformations(int count, glm::vec3 bound1, glm::vec3 bound2, Transformation* previous) {
+		std::random_device rd;
+		std::mt19937 e2(rd());
+
+		std::uniform_real_distribution<> x_generator(bound1.x, bound2.x);
+		std::uniform_real_distribution<> y_generator(bound1.y, bound2.y);
+		std::uniform_real_distribution<> z_generator(bound1.z, bound2.z);
+
+		int i = 0;
+		int generated = 0;
+		while (i < 10000000) {
+			float x = x_generator(e2);
+			float y = y_generator(e2);
+			float z = z_generator(e2);
+
+			// Check if minimum distance is met
+			if (min_distance > 0) {
+				for (glm::vec3 obstacle : obstacles) {
+					float dist = 0;
+					if (bound1.x != bound2.x) {
+						dist += std::pow(x - obstacle.x, 2);
+					}
+					if (bound1.y != bound2.y) {
+						dist += std::pow(y - obstacle.y, 2);
+					}
+					if (bound1.z != bound2.z) {
+						dist += std::pow(z - obstacle.z, 2);
+					}
+
+					if (std::sqrt(dist) < min_distance) {
+						continue;
+					}
+				}
+			}
+			obstacles.push_back(glm::vec3(x, y, z));
+			generated++;
+			if (generated == count) {
+				break;
+			}
+
+			i++;
+		}
+
+		if (i == 10000000) {
+			std::cout << "Failed to generate desired amount of transformations" << std::endl;
+		}
+
+		std::uniform_real_distribution<> size_generator(0.7, 1.2);
+		std::uniform_real_distribution<> rotation_generator(0, 3.14);
+
+		std::vector<Transformation*> transformations;
+		for (int j = obstacles.size() - generated; j < obstacles.size(); j++) {
+			Transformation* t = new Transformation();
+			if (previous != nullptr) {
+				*t << *previous;
+			}
+			t->scale(size_generator(e2));
+			// Just rotate around Y randomly... Not like this is going to be used for any other scenario
+			t->rotate(0, rotation_generator(e2), 0);
+			t->translate(obstacles[j].x, obstacles[j].y, obstacles[j].z);
+			transformations.push_back(t);
+		}
+
+		return transformations;
+	}
+
 }
+
+namespace stringutil {
+	void stringutil::replaceChar(char* ptr, char from, char to) {
+		int i = 0;
+		while (ptr[i] != 0) {
+			if (ptr[i] == from) {
+				ptr[i] = to;
+			}
+			i++;
+		}
+	}
+}
+

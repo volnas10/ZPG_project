@@ -4,9 +4,9 @@
 
 namespace object {
 	Mesh* object::Object::addMesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
-		std::vector<unsigned int> indices, Material material) {
+		std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices, Material material) {
 		
-		Mesh* mesh = new Mesh(vertices, normals, uvs, indices, material);
+		Mesh* mesh = new Mesh(vertices, normals, uvs, tangents, bitangents, indices, material);
 		meshes.push_back(std::make_pair(mesh, std::vector<trans::Transformation*>()));
 		return mesh;
 	}
@@ -48,12 +48,16 @@ namespace object {
 	}
 
 	Mesh::Mesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
-		std::vector<unsigned int> indices, Material material) {
+		std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices, Material material) {
 
-		this->vertices = vertices;
-		this->normals = normals;
-		this->uvs = uvs;
-		this->indices = indices;
+		//this->vertices = vertices;
+		//this->normals = normals;
+		//this->uvs = uvs;
+		//this->tangents = tangents;
+		//this->bitangents = bitangents;
+		//this->indices = indices;
+
+		index_count = indices.size();
 		this->material = material;
 
 		glGenBuffers(1, &VBO);
@@ -69,6 +73,17 @@ namespace object {
 			glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
 			glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
 		}
+		else {
+			uv_buffer = 0;
+		}
+
+		glGenBuffers(1, &tangent_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, tangent_buffer);
+		glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(glm::vec3), &tangents[0], GL_STATIC_DRAW);
+
+		glGenBuffers(1, &bitangent_buffer);
+		glBindBuffer(GL_ARRAY_BUFFER, bitangent_buffer);
+		glBufferData(GL_ARRAY_BUFFER, bitangents.size() * sizeof(glm::vec3), &bitangents[0], GL_STATIC_DRAW);
 
 		glGenBuffers(1, &VIO);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
@@ -88,22 +103,40 @@ namespace object {
 		glBindBuffer(GL_ARRAY_BUFFER, normal_buffer);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-		if (uvs.size() > 0) {
+		if (uv_buffer > 0) {
 			glEnableVertexAttribArray(2);
 			glBindBuffer(GL_ARRAY_BUFFER, uv_buffer);
 			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 		}
 
-		// Bind to texture unit 0
+		glEnableVertexAttribArray(3);
+		glBindBuffer(GL_ARRAY_BUFFER, tangent_buffer);
+		glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+		glEnableVertexAttribArray(4);
+		glBindBuffer(GL_ARRAY_BUFFER, bitangent_buffer);
+		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
 		// Add textrue manager later
-		if (material.diffuse_color.a > 0) {
-			glBindTexture(GL_TEXTURE0, (GLuint) material.diffuse_color.a);
+		if (material.diffuse_texture > 0) {
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, material.diffuse_texture);
+		}
+		if (material.normal_map > 0) {
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, material.normal_map);
+		}
+		if (material.opacity_map > 0) {
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, material.opacity_map);
 		}
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
 		glBindBufferBase(GL_UNIFORM_BUFFER, 0, material_buffer);
 	}
+
 	size_t Mesh::size() {
-		return indices.size();
+		//return indices.size();
+		return index_count;
 	}
 }

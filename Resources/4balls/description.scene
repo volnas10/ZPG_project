@@ -1,0 +1,43 @@
+Transformation {
+	position: 4.0 0.0 0.0
+}
+Transformation {
+	position: -4.0 0.0 0.0
+}
+Transformation {
+	position: 0.0 0.0 4.0
+}
+Transformation {
+	position: 0.0 0.0 -4.0
+}
+Object {
+	model: sphere.obj
+	transformations: [0, 1, 2, 3]
+}
+Light {
+	position: 0.0 0.0 0.0
+	color: 1.0 1.0 1.0
+	power: 8.0
+	ambient: 0.1
+}
+Shader {
+	type: vertex
+	name: VertexShader_simple.glsl
+}
+Shader {
+	type: fragment
+	name: FragmentShader_simple.glsl
+}
+Program {
+	shaders: [0, 1]
+}
+Renderer {
+	objects: [0]
+	program: 0
+	light: 0
+}
+Camera {
+	position: 0.0 8.0 0.0
+	lookat: 0.0 0.0 0.0
+	fov: 70.0
+}

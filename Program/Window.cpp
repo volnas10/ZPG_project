@@ -1,6 +1,7 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
@@ -12,7 +13,7 @@
 
 Window::Window(GLFWwindow* window) {
 	this->window = window;
-
+    this->cursor_locked = true;
     // Set callbacks
 	glfwSetWindowUserPointer(window, reinterpret_cast<void*>(this));
     glfwSetScrollCallback(window, scrollCallback);
@@ -23,12 +24,18 @@ Window::Window(GLFWwindow* window) {
     glfwGetWindowSize(window, &width, &height);
     window_size = glm::vec2(width, height);
 
-    camera = new Camera(glm::vec3(0.0f, 0.0f, -4.0f), 70.0f, 0.0f, 0.0f, (float) width / height);
     last_time = -1;
 
-    scene = new Scene("scene2");
+    scene = new Scene("forest");
     scene->load();
     
+    camera = scene->getCamera();
+    if (camera == nullptr) {
+        camera = new Camera(glm::vec3(0), 70, 0, 0, (float)width / height);
+    }
+    else {
+        camera->changeAspectRatio((float)width / height);
+    }
 
     for (Program* program : scene->getPrograms()) {
         camera->subscribe(program);
@@ -37,7 +44,6 @@ Window::Window(GLFWwindow* window) {
 
 Window::~Window() {
     delete scene;
-    delete camera;
 }
 
 void Window::start() {
@@ -46,7 +52,6 @@ void Window::start() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         scene->moveObjects(glfwGetTime() - last_time);
-
         handleInput();
 
         // Render scene
@@ -65,8 +70,15 @@ void Window::windowResizeCallback(GLFWwindow* window, int width, int height) {
 }
 
 void Window::windowResized(int width, int height) {
+    std::cout << width << " " << height << std::endl;
+
+    glViewport(0, 0, width, height);
+    float aspect_ratio = (float) width / height;
+
     window_size = glm::vec2(width, height);
-    // Notify all objects that need to know current window size
+    camera->changeAspectRatio(aspect_ratio);
+    window_size.x = width;
+    window_size.y = height;
 }
 
 void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -80,6 +92,23 @@ void Window::scroll(double yoffset) {
 
 void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     Window* actual_window = (Window*)glfwGetWindowUserPointer(window);
+    actual_window->keyPressed(key, scancode, action, mods);
+}
+
+void Window::keyPressed(int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        // TAB releases user's mouse
+        if (key == GLFW_KEY_TAB) {
+            if (cursor_locked) {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            }
+            else {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+                glfwSetCursorPos(window, window_size.x / 2, window_size.y / 2);
+            }
+            cursor_locked = !cursor_locked;
+        }
+    }
 }
 
 void Window::handleInput() {
@@ -90,44 +119,55 @@ void Window::handleInput() {
     double current_time = glfwGetTime();
     float delta_time = float(current_time - last_time);
 
-    double xpos, ypos;
+    float horizontal_angle = 0;
+    float vertical_angle = 0;
+    if (cursor_locked) {
+        double xpos, ypos;
 
-    glfwGetCursorPos(window, &xpos, &ypos);
-    glfwSetCursorPos(window, window_size.x / 2, window_size.y / 2);
+        glfwGetCursorPos(window, &xpos, &ypos);
+        glfwSetCursorPos(window, window_size.x / 2, window_size.y / 2);
 
-    float horizontal_angle = 1.0f * delta_time * float(window_size.x / 2 - xpos);
-    float vertical_angle = 1.0f * delta_time * float(window_size.y / 2 - ypos);
+        horizontal_angle = 1.0f * delta_time * float((int) window_size.x / 2 - xpos);
+        vertical_angle = 1.0f * delta_time * float((int) window_size.y / 2 - ypos);
+    }
 
     glm::vec3 dir(.0f, .0f, .0f);
 
     bool moved = false;
+    float movement_speed = MOVEMENT_SPEED;
+    // Boost movement sapeed
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+        movement_speed *= 4;
+    }
+
+
 
     // Move forward
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        dir.z = MOVEMENT_SPEED * delta_time;
+        dir.z = movement_speed * delta_time;
         moved = true;
     }
     // Move backward
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        dir.z = -MOVEMENT_SPEED * delta_time;
+        dir.z = -movement_speed * delta_time;
         moved = true;
     }
     // Strafe right
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        dir.x = MOVEMENT_SPEED * delta_time;
+        dir.x = movement_speed * delta_time;
         moved = true;
     }
     // Strafe left
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        dir.x = -MOVEMENT_SPEED * delta_time;
+        dir.x = -movement_speed * delta_time;
         moved = true;
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        dir.y = MOVEMENT_SPEED * delta_time;
+        dir.y = movement_speed * delta_time;
         moved = true;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        dir.y = -MOVEMENT_SPEED * delta_time;
+        dir.y = -movement_speed * delta_time;
         moved = true;
     }
 

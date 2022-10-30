@@ -7,13 +7,12 @@
 #include "Util.h"
 #include "Program.h"
 #include "Object.h"
-#include "Skybox.h"
 
 class AbstractRenderer {
 protected:
 	Program* program;
 	static GLuint VAO;
-	GLuint texture_sampler_ID;
+	std::vector<GLuint> texture_samplers;
 public:
 	AbstractRenderer(Program* program);
 	virtual void render() = 0;
@@ -43,6 +42,19 @@ private:
 	GLuint cube_VBO, texture_ID;
 public:
 	SkyboxRenderer(Program* program, GLuint texture_ID);
+	void render();
+};
+
+// Floor renderer able to tile textures
+class FloorRenderer : public AbstractRenderer {
+private:
+	GLuint plane_VBO, offset_buffer, rotation_buffer;
+	GLuint diffuse_tex_ID, normal_tex_ID, specular_tex_ID;
+	int tile_count;
+	glm::mat3 light;
+public:
+	FloorRenderer(Program* program, float size, int dimension, GLuint diffuse, GLuint normal, GLuint specular);
+	void setLight(glm::mat3 light);
 	void render();
 };
 

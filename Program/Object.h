@@ -15,7 +15,7 @@
 
 namespace object {
 	struct Material {
-		glm::vec4 diffuse_color; // r, g, b, texture_ID
+		glm::vec4 diffuse_color; // r, g, b, a
 		glm::vec4 specular_color;
 		glm::vec4 ambient_color;
 		glm::vec4 emissive_color;
@@ -24,23 +24,29 @@ namespace object {
 		float refraction_index;
 		float shininess;
 		float shininess_strength;
+		unsigned int diffuse_texture = 0;
+		unsigned int normal_map = 0;
+		unsigned opacity_map = 0;
 	};
 
 	// Mesh is a part of object that has only 1 material and (not necessarily) texture
 	class Mesh {
 	private:
-		std::vector<glm::vec3> vertices;
-		std::vector<glm::vec3> normals;
-		std::vector<glm::vec2> uvs;
-		std::vector<unsigned int> indices;
+		//std::vector<glm::vec3> vertices;
+		//std::vector<glm::vec3> normals;
+		//std::vector<glm::vec2> uvs;
+		//std::vector<glm::vec3> tangents;
+		//std::vector<glm::vec3> bitangents;
+		//std::vector<unsigned int> indices;
+		size_t index_count;
 		Material material;
 
 		GLuint VBO, VIO;
-		GLuint normal_buffer, uv_buffer;
+		GLuint normal_buffer, uv_buffer, tangent_buffer, bitangent_buffer;
 		GLuint material_buffer;
 	public:
 		Mesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
-			std::vector<unsigned int> indices, Material material);
+			std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices, Material material);
 		void prepareForDraw();
 		size_t size();
 	};
@@ -55,7 +61,7 @@ namespace object {
 		std::string name;
 
 		Mesh* addMesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
-			std::vector<unsigned int> indices, Material material);
+			std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices, Material material);
 		void transformMesh(unsigned int index, trans::Transformation* transformation);
 		void transformMesh(unsigned int index, std::vector<trans::Transformation*> transformations);
 

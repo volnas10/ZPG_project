@@ -1,43 +1,63 @@
 #version 330 core
 
-// Input vertex data, different for all executions of this shader.
-layout(location = 0) in vec3 vertex_position;
-layout(location = 1) in vec3 vertex_normal;
-layout(location = 2) in vec2 vertex_uv;
+layout(location = 0) in vec3 VertexPosition;
+layout(location = 1) in vec3 VertexNormal;
+layout(location = 2) in vec2 VertexUV;
+layout(location = 3) in vec3 Tangent;
+layout(location = 4) in vec3 Bitangent;
 
-// Output data ; will be interpolated for each fragment.
-out vec2 UV;
-out vec3 vertex_position_worldspace;
-out vec3 normal_cameraspace;
-out vec3 eye_direction_cameraspace;
-out vec3 light_direction_cameraspace;
+// ws - worldspace
+// cs - cameraspace
+// ms - modelspace
+// ts - tangentspace
 
-// Values that stay constant for the whole mesh.
-uniform mat4 projection_matrix;
-uniform mat4 view_matrix;
-uniform mat4 model_matrix;
-uniform mat3 light_matrix;
+out vec2 uv;
+out vec3 vertexPosition_ws;
+out vec3 normal_cs;
+out vec3 eyeDirection_cs;
+out vec3 lightDirection_cs;
+
+out vec3 eyeDirection_ts;
+out vec3 lightDirection_ts;
+
+uniform mat4 ProjectionMatrix;
+uniform mat4 ViewMatrix;
+uniform mat4 ModelMatrix;
+uniform mat4 MeshMatrix;
+// Contains position, color and power
+uniform mat3 LightMatrix;
+
+
+out vec3 testNormal;
 
 void main(){
-	
-	gl_Position = projection_matrix * view_matrix * model_matrix * vec4(vertex_position, 1);
-	
-	// Position of the vertex, in worldspace : M * position
-	vertex_position_worldspace = (model_matrix * vec4(vertex_position,1)).xyz;
-	
-	// Vector that goes from the vertex to the camera, in camera space.
-	// In camera space, the camera is at the origin (0,0,0).
-	vec3 vertex_position_cameraspace = ( view_matrix * model_matrix * vec4(vertex_position,1)).xyz;
-	eye_direction_cameraspace = vec3(0,0,0) - vertex_position_cameraspace;
+	mat4 meshModelMatrix = ModelMatrix * MeshMatrix;
+	mat3 MMV3x3 = mat3(ViewMatrix * meshModelMatrix);
 
-	// Vector that goes from the vertex to the light, in camera space. M is ommited because it's identity.
-	vec3 light_position = light_matrix[0];
-	vec3 light_position_cameraspace = ( view_matrix * vec4(light_position,1)).xyz;
-	light_direction_cameraspace = light_position_cameraspace + eye_direction_cameraspace;
+	gl_Position = ProjectionMatrix * ViewMatrix * meshModelMatrix * vec4(VertexPosition, 1);
 	
-	// Normal of the the vertex, in camera space
-	normal_cameraspace = ( view_matrix * model_matrix * vec4(vertex_normal,0)).xyz;
-	UV = vertex_uv;
+	vertexPosition_ws = (meshModelMatrix * vec4(VertexPosition,1)).xyz;
+	
+	vec3 vertexPosition_cs = MMV3x3 * VertexPosition;
+
+	normal_cs = MMV3x3 * normalize(VertexNormal);
+	vec3 tangent_cs = MMV3x3 * normalize(Tangent);
+	//tangent_cs = normalize(tangent_cs - dot(tangent_cs, normal_cs) * normal_cs);
+
+
+	vec3 bitangent_cs = MMV3x3 * normalize(Bitangent);
+	//bitangent_cs = normalize(bitangent_cs - dot(bitangent_cs, normal_cs) * normal_cs);
+	
+	mat3 TBN = transpose(mat3(tangent_cs, bitangent_cs, normal_cs));
+
+	eyeDirection_cs = vec3(0,0,0) - vertexPosition_cs;
+	eyeDirection_ts = TBN * eyeDirection_cs;
+
+	vec3 lightPosition_cs = ( ViewMatrix * vec4(LightMatrix[0],1)).xyz;
+	lightDirection_cs = lightPosition_cs + eyeDirection_cs;
+	lightDirection_ts = TBN * lightDirection_cs;
+	
+	uv = VertexUV;
 
 }
 

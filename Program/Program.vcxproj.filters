@@ -45,33 +45,33 @@
     <ClCompile Include="Scene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Skybox.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\FragmentShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\VertexShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\SunVertexShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\SunFragmentShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
     <None Include="shaders\SkyboxFragmentShader.glsl">
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\SkyboxVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shaders\BlenderFragmentShader.glsl">
+    <None Include="shaders\FragmentShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shaders\BlenderVertexShader.glsl">
+    <None Include="shaders\VertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\SunFragmentShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\FloorFragmentShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\FloorVertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\VertexShader_simple.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\FragmentShader_simple.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -98,9 +98,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Skybox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

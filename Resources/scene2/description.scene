@@ -7,11 +7,11 @@ Object {
 }
 Shader {
 	type: vertex
-	name: BlenderVertexShader.glsl
+	name: VertexShader.glsl
 }
 Shader {
 	type: fragment
-	name: BlenderFragmentShader.glsl
+	name: FragmentShader.glsl
 }
 Program {
 	shaders: [0, 1]
@@ -19,7 +19,7 @@ Program {
 Light {
 	position: 6 35 -10
 	color: 1 1 1
-	power: 40
+	power: 500
 }
 Renderer {
 	objects: [0]

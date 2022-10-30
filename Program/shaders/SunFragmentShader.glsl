@@ -1,58 +1,62 @@
 #version 330 core
 
-// Interpolated values from the vertex shaders
-in vec2 UV;
-in vec3 vertex_position_worldspace;
-in vec3 normal_cameraspace;
-in vec3 eye_direction_cameraspace;
-in vec3 light_direction_cameraspace;
+in vec2 uv;
+in vec3 vertexPosition_ws;
+in vec3 normal_cs;
+in vec3 eyeDirection_cs;
+in vec3 lightDirection_cs;
 
-// Ouput data
-out vec3 color;
+out vec4 color;
 
-// Values that stay constant for the whole mesh.
-uniform sampler2D texture_sampler;
-uniform mat3 light_matrix;
+uniform sampler2D TextureSampler;
+uniform mat3 LightMatrix;
+
+layout(std140) uniform Material {
+	vec4 diffuse_color; // r, g, b | texture_index
+	vec4 specular_color;
+	vec4 ambient_color;
+	vec4 emissive_color;
+	vec4 transparent_color; // r, g, b | opacity
+	vec4 reflective_color; // r, g, b | reflectivity
+	float refraction_index;
+	float shininess;
+	float shininess_strength;
+} material;
 
 void main(){
-	vec3 LightColor = vec3(light_matrix[1].x, light_matrix[1].y, light_matrix[1].z);
-	float LightPower = light_matrix[2].x;
-	vec3 light_position = light_matrix[0];
-	
-	// Material properties
-	vec3 MaterialDiffuseColor = texture(texture_sampler, UV).rgb;
-	vec3 MaterialAmbientColor = vec3(0.1,0.1,0.1) * MaterialDiffuseColor;
-	vec3 MaterialSpecularColor = vec3(0.1,0.1,0.1);
+
+	vec3 lightColor = vec3(LightMatrix[1].x, LightMatrix[1].y, LightMatrix[1].z);
+	float lightPower = LightMatrix[2].x * 0.2; // Reduced light power for sun
+	vec3 lightPosition = LightMatrix[0];
+
+	// If material has texture, use it
+	vec3 diffuseColor;
+	vec3 ambientColor;
+	vec3 specularColor;
+	if (material.diffuse_color.w >= 0) {
+		diffuseColor = texture(TextureSampler, uv).rgb;
+		ambientColor = vec3(0.1,0.1,0.1) * diffuseColor;
+		specularColor = vec3(0.1,0.1,0.1);
+	}
+	else {
+		diffuseColor = material.diffuse_color.rgb;
+		ambientColor = material.ambient_color.rgb;
+		specularColor = material.specular_color.rgb;
+	}
 
 	// Distance to the light
-	float distance = length( light_position - vertex_position_worldspace );
-
-	// Normal of the computed fragment, in camera space
-	vec3 n = normalize( normal_cameraspace );
-	// Direction of the light (from the fragment to the light)
-	vec3 l = normalize( light_direction_cameraspace );
-	// Cosine of the angle between the normal and the light direction, 
-	// clamped above 0
-	//  - light is at the vertical of the triangle -> 1
-	//  - light is perpendicular to the triangle -> 0
-	//  - light is behind the triangle -> 0
-	float cosTheta = clamp( dot( n,l ), 0,1 );
+	float distance = length(lightPosition - vertexPosition_ws);
+	// Lambert
+	vec3 N = normalize(-normal_cs); // Normal inverted so sun glows outside
+	vec3 L = normalize(lightDirection_cs);
+	float cosTheta = clamp(dot(N, L), 0, 1);
 	
-	// Eye vector (towards the camera)
-	vec3 E = normalize(eye_direction_cameraspace);
-	// Direction in which the triangle reflects the light
-	vec3 R = reflect(-l,n);
-	// Cosine of the angle between the Eye vector and the Reflect vector,
-	// clamped to 0
-	//  - Looking into the reflection -> 1
-	//  - Looking elsewhere -> < 1
-	float cosAlpha = clamp( dot( E,R ), 0,1 );
+	// Phong
+	float cosAlpha = clamp(dot(normalize(eyeDirection_cs), reflect(-L, N)), 0, 1);
 	
-	color = 
-		// Ambient : simulates indirect lighting
-		MaterialAmbientColor +
-		// Diffuse : "color" of the object
-		MaterialDiffuseColor * LightColor * (LightPower / 10) * cosTheta +
-		// Specular : reflective highlight, like a mirror
-		MaterialSpecularColor * LightColor * (LightPower / 10) * pow(cosAlpha,5);
+	color.rgb = ambientColor +
+			diffuseColor * lightColor * lightPower * cosTheta / (distance * distance) +
+			specularColor * lightColor * lightPower * pow(cosAlpha, material.shininess) / (distance * distance);
+	
+	color.a = material.transparent_color.a;
 }

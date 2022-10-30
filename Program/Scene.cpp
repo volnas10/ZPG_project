@@ -48,18 +48,17 @@ GLuint loadTexture(const char* filename) {
 		return 0;
 	}
 
-	data = FreeImage_GetBits(dib);
-
-	width = FreeImage_GetWidth(dib);
-	height = FreeImage_GetHeight(dib);
-
-
+	FREE_IMAGE_COLOR_TYPE fi_color_type = FreeImage_GetColorType(dib);
 	GLenum gl_color_type;
-	if (format == FIF_BMP || format == FIF_JPEG) {
+	if (fi_color_type == FIC_RGB) {
 		gl_color_type = GL_BGR;
 	}
-	else if (format == FIF_PNG) {
-		gl_color_type = GL_RGBA;
+	else if (fi_color_type == FIC_RGBALPHA) {
+		gl_color_type = GL_BGRA;
+	}
+	else if (fi_color_type == FIC_MINISBLACK) {
+		dib = FreeImage_ConvertTo24Bits(dib);
+		gl_color_type = GL_RGB;
 	}
 	else {
 		std::cout << "Unsupported color type: " << filename << std::endl;
@@ -67,18 +66,26 @@ GLuint loadTexture(const char* filename) {
 		return 0;
 	}
 
+	data = FreeImage_GetBits(dib);
+
+	width = FreeImage_GetWidth(dib);
+	height = FreeImage_GetHeight(dib);
+
+
 	GLuint texture_ID;
 	glGenTextures(1, &texture_ID);
+
 	glBindTexture(GL_TEXTURE_2D, texture_ID);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, gl_color_type, GL_UNSIGNED_BYTE, data);
 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	FreeImage_Unload(dib);
+
 
 	return texture_ID;
 }
@@ -111,14 +118,19 @@ GLuint loadTextureFromMemory(aiTexture* t) {
 	height = FreeImage_GetHeight(dib);
 	data = FreeImage_GetBits(dib);
 
+	FREE_IMAGE_COLOR_TYPE fi_color_type = FreeImage_GetColorType(dib);
 	GLenum gl_color_type;
-	if (format == FIF_BMP || format == FIF_JPEG) {
+	if (fi_color_type == FIC_RGB) {
 		gl_color_type = GL_BGR;
 	}
-	else if (format == FIF_PNG) {
+	else if (fi_color_type == FIC_RGBALPHA) {
 		gl_color_type = GL_RGBA;
 	}
+	else if (fi_color_type == FIC_MINISBLACK) {
+		gl_color_type = GL_LUMINANCE;
+	}
 	else {
+		std::cout << "Unsupported color type: " << t->mFilename.C_Str() << std::endl;
 		FreeImage_Unload(dib);
 		return 0;
 	}
@@ -257,14 +269,14 @@ void nodeBuilder(aiNode* node, trans::Transformation* parent_trans,
 }
 
 object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
-	std::vector<GLuint> textures;
+	std::vector<GLuint> memory_textures;
 	std::vector<object::Material> materials;
 	object::Object* object = new object::Object();
 
 	// Load tetxures from memory
 	for (unsigned int t_index = 0; t_index < scene->mNumTextures; t_index++) {
 		aiTexture* texture = scene->mTextures[t_index];
-		textures.push_back(loadTextureFromMemory(texture));
+		memory_textures.push_back(loadTextureFromMemory(texture));
 	}
 
 	// Parse materials
@@ -277,7 +289,8 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		float val;
 
 		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
-			my_material.diffuse_color = glm::vec4(color.r, color.g, color.b, -1);
+			material->Get(AI_MATKEY_OPACITY, val);
+			my_material.diffuse_color = glm::vec4(color.r, color.g, color.b, val);
 		}
 		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
 			my_material.ambient_color = glm::vec4(color.r, color.g, color.b, 0);
@@ -289,9 +302,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 			my_material.specular_color = glm::vec4(color.r, color.g, color.b, 0);
 		}
 		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_TRANSPARENT, color)) {
-			val = 1;
-			material->Get(AI_MATKEY_OPACITY, val);
-			my_material.transparent_color = glm::vec4(color.r, color.g, color.b, val);
+			my_material.transparent_color = glm::vec4(color.r, color.g, color.b, 0);
 		}
 		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_REFLECTIVE, color)) {
 			val = 0;
@@ -309,23 +320,37 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		}
 
 		// Check if material has textures
-		unsigned int texture_count = material->GetTextureCount(aiTextureType_DIFFUSE);
-		if (texture_count > 0) {
+		for (int i = 0; i <= 21; i++) {
+			aiTextureType type = aiTextureType(i);
+			unsigned int count = material->GetTextureCount(type);
+			if (count == 0) continue;
 			aiString texture_name;
-			material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), texture_name);
+			material->Get(AI_MATKEY_TEXTURE(type, 0), texture_name);
+
+			unsigned int texture_ID = 0;
 			// Embedded texture
 			if (texture_name.C_Str()[0] == '*') {
-				my_material.diffuse_color.a = textures[atoi(texture_name.C_Str() + 1)];
+				texture_ID = memory_textures[atoi(texture_name.C_Str() + 1)];
 			}
 			// Texture from file
 			else {
 				aiString full_path = path;
 				full_path.Append(texture_name.C_Str());
-				GLuint id = loadTexture(full_path.C_Str());
-				if (id > 0) {
-					textures.push_back(id);
-					my_material.diffuse_color.a = textures[textures.size() - 1];
-				}
+				stringutil::replaceChar(full_path.data, '\\', '/');
+				texture_ID = loadTexture(full_path.C_Str());
+			}
+
+			if (texture_ID <= 0) continue;
+
+			if (type == aiTextureType_DIFFUSE) {
+				my_material.diffuse_texture = texture_ID;
+			}
+			else if (type == aiTextureType_HEIGHT) {
+				my_material.normal_map = texture_ID;
+			}
+			// With one testing model opacity is stored under normals so... I'll use it
+			else if (type == aiTextureType_NORMALS) {
+				my_material.opacity_map = texture_ID;
 			}
 		}
 
@@ -338,13 +363,19 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		std::vector<glm::vec3> vertices;
 		std::vector<glm::vec3> normals;
 		std::vector<glm::vec2> uvs;
+		std::vector<glm::vec3> tangents;
+		std::vector<glm::vec3> bitangents;
 		std::vector<unsigned int> indices;
 
 		for (unsigned int v_index = 0; v_index < mesh->mNumVertices; v_index++) {
 			aiVector3D vertex = mesh->mVertices[v_index];
 			aiVector3D normal = mesh->mNormals[v_index];
+			aiVector3D tangent = mesh->mTangents[v_index];
+			aiVector3D bitangent = mesh->mBitangents[v_index];
 			vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
 			normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
+			tangents.push_back(glm::vec3(tangent.x, tangent.y, tangent.z));
+			bitangents.push_back(glm::vec3(bitangent.x, bitangent.y, bitangent.z));
 		}
 		if (mesh->HasTextureCoords(0)) {
 			for (unsigned int uv_index = 0; uv_index < mesh->mNumVertices; uv_index++) {
@@ -359,7 +390,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 				indices.push_back(face.mIndices[idx]);
 			}
 		}
-		object->addMesh(vertices, normals, uvs, indices, materials[mesh->mMaterialIndex]);
+		object->addMesh(vertices, normals, uvs, tangents, bitangents, indices, materials[mesh->mMaterialIndex]);
 	}
 
 	// Build the object from meshes and transformations
@@ -376,6 +407,16 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 
 Scene::Scene(std::string name) {
 	this->name = name;
+}
+
+Scene::~Scene() {
+	delete camera;
+	for (AbstractRenderer* r : renderers) {
+		delete r;
+	}
+	for (Program* p : programs) {
+		delete p;
+	}
 }
 
 bool Scene::load() {
@@ -466,7 +507,7 @@ bool Scene::load() {
 
 			std::string object_path = path + values["path"];
 			const aiScene* scene = importer.ReadFile((object_path + values["model"]).c_str(),
-				aiProcess_Triangulate | aiProcess_PreTransformVertices);
+				aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace);
 			if (!scene) {
 				description.close();
 				std::cout << "Cannot load object " << values["model"] << std::endl;
@@ -505,6 +546,7 @@ bool Scene::load() {
 			glm::vec3 light_pos(.0f, .0f, .0f);
 			glm::vec3 light_color(1.0f, 1.0f, 1.0f);
 			float light_power = 50.0f;
+			float ambient = 0.1;
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
@@ -521,12 +563,16 @@ bool Scene::load() {
 				else if (key == "power") {
 					sstream >> light_power;
 				}
+				else if (key == "ambient") {
+					sstream >> ambient;
+				}
 				std::getline(description, line);
 			}
 			glm::mat3 light(0.0);
 			light[0] = light_pos;
 			light[1] = light_color;
 			light[2][0] = light_power;
+			light[2][1] = ambient;
 			lights.push_back(light);
 		}
 
@@ -601,9 +647,21 @@ bool Scene::load() {
 				std::getline(description, line);
 			}
 			ObjectRenderer* renderer = new ObjectRenderer(programs[program_index]);
+			std::vector<glm::vec3> obstacles;
+			int count = 200;
 			for (int object_index : object_indices) {
 				auto pair = objects[object_index];
-				renderer->addObject(pair.first, pair.second);
+				//renderer->addObject(pair.first, pair.second);
+				// Temporary random generator
+				trans::TransformationGenerator generator;
+				generator.setMinDistance(8);
+				std::vector<trans::Transformation*> random_transformations = generator.generateTransformations(count, glm::vec3(-60, 0, -60), glm::vec3(60, 0, 60), pair.second[0]);
+				obstacles = generator.getObstacles();
+				count += 200;
+
+				for (trans::Transformation* t : random_transformations) {
+					renderer->addObject(pair.first, t);
+				}
 			}
 			if (light_index > -1) {
 				renderer->setLight(lights[light_index]);
@@ -635,6 +693,113 @@ bool Scene::load() {
 				std::getline(description, line);
 			}
 		}
+
+		// Load camera
+		else if (line.find("Camera") != std::string::npos) {
+			float fov = 70.f;
+			glm::vec3 position(0, 0, -0.01);
+			glm::vec3 look_at(0);
+			// Load parameters
+			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "position") {
+					sstream >> position.x >> position.y >> position.z;
+				}
+				else if (key == "fov") {
+					sstream >> fov;
+				}
+				else if (key == "lookat") {
+					sstream >> look_at.x >> look_at.y >> look_at.z;
+				}
+
+				std::getline(description, line);
+			}
+
+			glm::vec3 camera_direction = glm::normalize(look_at - position);
+			float horizontal_angle = 0;
+			float vertical_angle = 0;
+			// Calculate horizontal angle
+			if (camera_direction.x == 0) {
+				horizontal_angle = camera_direction.z >= 0 ? 0 : PI;
+			}
+			else if (camera_direction.z == 0) {
+				horizontal_angle = camera_direction.x >= 0 ? PI / 2 : PI * 1.5;
+			}
+			else {
+				horizontal_angle = glm::atan(camera_direction.x / camera_direction.z);
+				if (camera_direction.z < 0) {
+					horizontal_angle += camera_direction.x > 0 ? PI : -PI;
+				}
+			}
+			// Calculate vertical angle
+			float adjacent = std::sqrt(std::pow(camera_direction.x, 2) + std::pow(camera_direction.z, 2));
+			if (adjacent == 0) {
+				vertical_angle = camera_direction.y >= 0 ? -PI / 2 : PI / 2;
+			}
+			else if (camera_direction.y != 0) {
+				vertical_angle = glm::atan(camera_direction.y / adjacent);
+			}
+
+			// Aspect ratio will get adjusted in window
+			camera = new Camera(position, fov, horizontal_angle, vertical_angle, 1.77777);
+		}
+
+		// Load floor
+		else if (line.find("Floor") != std::string::npos) {
+			GLuint diffuse_texture = 0;
+			GLuint normal_texture = 0;
+			GLuint specular_texture = 0;
+			float size = 1.0;
+			float dimension = 1;
+			int light = -1;
+			// Load parameters
+			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "diffuse_texture") {
+					std::string value;
+					sstream >> value;
+					diffuse_texture = loadTexture((path + value).c_str());
+				}
+				else if (key == "normal_map") {
+					std::string value;
+					sstream >> value;
+					normal_texture = loadTexture((path + value).c_str());
+				}
+				else if (key == "specular_map") {
+					std::string value;
+					sstream >> value;
+					specular_texture = loadTexture((path + value).c_str());
+				}
+				else if (key == "size") {
+					sstream >> size;
+				}
+				else if (key == "dimension") {
+					sstream >> dimension;
+				}
+				else if (key == "light") {
+					sstream >> light;
+				}
+				std::getline(description, line);
+			}
+			std::vector<Shader> shaders;
+			shaders.push_back(Shader("FloorVertexShader.glsl", GL_VERTEX_SHADER));
+			shaders.push_back(Shader("FloorFragmentShader.glsl", GL_FRAGMENT_SHADER));
+			Program* floor_program = new Program(shaders);
+			FloorRenderer* renderer = new FloorRenderer(floor_program, size, dimension, diffuse_texture, normal_texture, specular_texture);
+			if (light > -1) {
+				renderer->setLight(lights[light]);
+			}
+			programs.push_back(floor_program);
+			renderers.insert(renderers.begin(), 1, renderer);
+		}
 	}
 
 	description.close();
@@ -647,6 +812,10 @@ std::vector<AbstractRenderer*> Scene::getRenderers() {
 
 std::vector<Program*> Scene::getPrograms() {
 	return programs;
+}
+
+Camera* Scene::getCamera() {
+	return camera;
 }
 
 void Scene::moveObjects(double delta_time) {

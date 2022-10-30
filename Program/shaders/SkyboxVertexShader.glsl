@@ -1,13 +1,13 @@
 #version 330 core
-layout (location = 0) in vec3 vertex;
+layout (location = 0) in vec3 VertexPosition;
 
 out vec3 uv;
 
-uniform mat4 projection_matrix;
-uniform mat4 view_matrix;
+uniform mat4 ProjectionMatrix;
+uniform mat4 ViewMatrix;
 
 void main()
 {
-    gl_Position = projection_matrix * mat4(mat3(view_matrix)) * vec4(vertex, 1.0);
-    uv = vertex;
+    gl_Position = ProjectionMatrix * mat4(mat3(ViewMatrix)) * vec4(VertexPosition, 1.0);
+    uv = VertexPosition;
 }  

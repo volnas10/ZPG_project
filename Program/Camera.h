@@ -24,6 +24,7 @@ public:
 
 	void move(glm::vec3 dir, float h_angle, float v_angle);
 	void changeFov(double value);
+	void changeAspectRatio(float aspect_ratio);
 
 	glm::mat4 getView();
 	glm::mat4 getProjection();

@@ -22,6 +22,7 @@ int main() {
 	if (!glfwInit())
 		exit(EXIT_FAILURE);
 
+	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -36,7 +37,9 @@ int main() {
 
 	glfwMakeContextCurrent(window);
 	glfwSwapInterval(1); // V-SYNC
-	glClearColor(0.0f, 0.0f, 0.2f, 0.0f);
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	glewExperimental = GL_TRUE;
 
@@ -51,6 +54,9 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 	// Accept fragment if it closer to the camera than the former one
 	glDepthFunc(GL_LESS);
+	// If fragment is transparent, throw it away
+	glAlphaFunc(GL_GREATER, 0.5);
+	glEnable(GL_ALPHA_TEST);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -64,7 +70,8 @@ int main() {
 	int major, minor, revision;
 	glfwGetVersion(&major, &minor, &revision);
 	std::cout << "Using GLFW " << major << "." << minor << "." << revision << std::endl;
-	
+
+
 	// Create my window
 	Window my_window(window);
 	my_window.start();

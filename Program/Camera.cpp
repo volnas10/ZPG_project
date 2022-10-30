@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 
+#include "Util.h"
 #include "Camera.h"
 
 Camera::Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle, float aspect_ratio) {
@@ -12,10 +13,15 @@ Camera::Camera(glm::vec3 position, float fov, float horizontal_angle, float vert
 	this->horizontal_angle = horizontal_angle;
 	this->vertical_angle = vertical_angle;
 	this->aspect_ratio = aspect_ratio;
+
+	// Get view and projection matrix calculated right away
+	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 150.0f);
+	move(glm::vec3(0), 0, 0);
 }
 
 void Camera::subscribe(Program* program) {
 	subscribers.push_back(program);
+	program->notify(view_matrix, projection_matrix);
 }
 
 void Camera::notifySubscribers() {
@@ -25,11 +31,11 @@ void Camera::notifySubscribers() {
 }
 
 void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
-	horizontal_angle += h_angle;
-	vertical_angle += v_angle;
+	horizontal_angle = std::fmod(horizontal_angle + h_angle, 2 * PI);
+	vertical_angle = std::fmod(vertical_angle + v_angle, 2 * PI);
 
-	if (vertical_angle < -1.57) vertical_angle = -1.57;
-	else if (vertical_angle > 1.57) vertical_angle = 1.57;
+	if (vertical_angle < -PI / 2) vertical_angle = -PI / 2;
+	else if (vertical_angle > PI / 2) vertical_angle = PI / 2;
 
 	glm::vec3 direction(
 	    cos(vertical_angle) * sin(horizontal_angle),
@@ -49,8 +55,6 @@ void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
 	position += right * dir.x;
 	position.y += dir.y;
 
-	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 200.0f);
-
 	view_matrix = glm::lookAt(
 	    position,
 	    position + direction,
@@ -65,7 +69,13 @@ void Camera::changeFov(double value) {
 	if (new_fov > 20 && new_fov < 120) {
 		fov = new_fov;
 	}
-	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 100.0f);
+	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 150.0f);
+	notifySubscribers();
+}
+
+void Camera::changeAspectRatio(float aspect_ratio) {
+	this->aspect_ratio = aspect_ratio;
+	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 150.0f);
 	notifySubscribers();
 }
 

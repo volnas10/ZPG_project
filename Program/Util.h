@@ -5,6 +5,9 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <unordered_map>
+#include <random>
+
+#define PI 3.14159
 
 namespace trans {
 
@@ -81,7 +84,25 @@ namespace trans {
 		void addChange(TransformationLeaf* t, glm::vec3 change);
 		void move(double delta_time);
 	};
+
+	// Class for generating random transformations for testing
+	class TransformationGenerator {
+	private:
+		float min_distance;
+		std::vector<glm::vec3> obstacles;
+	public:
+		TransformationGenerator();
+		void setMinDistance(float distance);
+		void addObstacles(std::vector<glm::vec3> obstacles);
+		std::vector<glm::vec3> getObstacles();
+		std::vector<Transformation*> generateTransformations(int count, glm::vec3 bound1, glm::vec3 bound2, Transformation* previous);
+	};
 }
+
+namespace stringutil {
+	void replaceChar(char* ptr, char from, char to);
+}
+
 
 
 #endif

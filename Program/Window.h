@@ -19,7 +19,9 @@ private:
 	Camera* camera;
 
 	double last_time;
+	bool cursor_locked;
 
+	// Handle window resize
 	static void windowResizeCallback(GLFWwindow* window, int width, int height);
 	void windowResized(int width, int height);
 
@@ -29,6 +31,7 @@ private:
 
 	// Handles single key presses
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+	void keyPressed(int key, int scancode, int action, int mods);
 
 	// Handles key presses every frame
 	void handleInput();
