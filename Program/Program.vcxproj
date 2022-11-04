@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Light.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="Program.cpp" />
@@ -26,6 +27,8 @@
     <None Include="shaders\FloorVertexShader.glsl" />
     <None Include="shaders\FragmentShader.glsl" />
     <None Include="shaders\FragmentShader_simple.glsl" />
+    <None Include="shaders\MultiLightFragmentShader.glsl" />
+    <None Include="shaders\MultiLightVertexShader.glsl" />
     <None Include="shaders\SunFragmentShader.glsl" />
     <None Include="shaders\VertexShader.glsl" />
     <None Include="shaders\SkyboxFragmentShader.glsl" />
@@ -34,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Light.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Program.h" />
     <ClInclude Include="Renderer.h" />

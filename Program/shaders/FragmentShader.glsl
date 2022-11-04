@@ -80,7 +80,7 @@ void main(){
 	}
 	
 	color.rgb = ambientColor +
-			diffuseColor.rgb * lightColor * lightPower * cosAlpha +
+			diffuseColor.rgb * lightColor * lightPower * cosAlpha+
 			specularColor * lightColor * lightPower * pow(cosTheta, 5);
 
 	// Set transparency

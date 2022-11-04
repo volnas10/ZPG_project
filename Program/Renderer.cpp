@@ -23,7 +23,6 @@ AbstractRenderer::AbstractRenderer(Program* program) {
 ObjectRenderer::ObjectRenderer(Program* program) : AbstractRenderer(program) {
 
 	model_matrix_ID = program->getUniformLocation("ModelMatrix");
-	light_ID = program->getUniformLocation("LightMatrix");
     mesh_matrix_ID = program->getUniformLocation("MeshMatrix");
     material_ID = program->getUniformBlockLocation("Material", 0);
 
@@ -32,8 +31,25 @@ ObjectRenderer::ObjectRenderer(Program* program) : AbstractRenderer(program) {
     texture_samplers.push_back(program->getUniformLocation("OpacityMapSampler"));
 }
 
-void ObjectRenderer::setLight(glm::mat3 light) {
-	this->light = light;
+void ObjectRenderer::setLights(std::vector<Light> lights) {
+    program->use();
+    std::vector<Light::LightStruct> light_structs;
+    for (Light l : lights) {
+        light_structs.push_back(l.toStruct());
+    }
+
+    GLuint lights_buffer;
+    glGenBuffers(1, &lights_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, lights_buffer);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(Light::LightStruct) * light_structs.size(), &light_structs[0], GL_DYNAMIC_DRAW);
+
+    for (int i = 0; i < light_structs.size(); i++) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, 1 + i, lights_buffer, 256 * i, sizeof(Light::LightStruct));
+    }
+
+    GLuint light_count_ID = program->getUniformLocation("LightCount");
+    glUniform1i(light_count_ID, light_structs.size());
+    program->stopUsing();
 }
 
 void ObjectRenderer::addObject(object::Object* obj, trans::Transformation* trans) {
@@ -48,7 +64,7 @@ void ObjectRenderer::render() {
 	program->use();
 
 	// Set light
-	glUniformMatrix3fv(light_ID, 1, GL_FALSE, &light[0][0]);
+	//glUniformMatrix3fv(light_ID, 1, GL_FALSE, &light[0][0]);
 
     // Tell samplers what texture to use
     for (int i = 0; i < texture_samplers.size(); i++) {
@@ -146,15 +162,11 @@ void SkyboxRenderer::render() {
     glEnable(GL_DEPTH_TEST);
 }
 
-FloorRenderer::FloorRenderer(Program* program, float size, int dimension, GLuint diffuse, GLuint normal, GLuint specular) : AbstractRenderer(program) {
+FloorRenderer::FloorRenderer(Program* program, float size, int dimension, GLuint texture) : AbstractRenderer(program) {
     this->program = program;
-    diffuse_tex_ID = diffuse;
-    normal_tex_ID = normal;
-    specular_tex_ID = specular;
+    texture_ID = texture;
 
     texture_samplers.push_back(program->getUniformLocation("TextureSampler"));
-    texture_samplers.push_back(program->getUniformLocation("NormalSampler"));
-    texture_samplers.push_back(program->getUniformLocation("SpecularSampler"));
 
     float half_size = size / 2;
 
@@ -193,18 +205,11 @@ FloorRenderer::FloorRenderer(Program* program, float size, int dimension, GLuint
     glGenBuffers(1, &rotation_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, rotation_buffer);
     glBufferData(GL_ARRAY_BUFFER, rotations.size() * sizeof(float), &rotations[0], GL_STATIC_DRAW);
-
-    float has_textures[] = { normal_tex_ID > 0, specular_tex_ID > 0 };
-    program->use();
-    glUniform2fv(program->getUniformLocation("HasTextures"), 1, has_textures);
-    program->stopUsing();
 }
 
-void FloorRenderer::setLight(glm::mat3 light) {
-    this->light = light;
-    program->use();
-    glUniformMatrix3fv(program->getUniformLocation("LightMatrix"), 1, GL_FALSE, &light[0][0]);
-    program->stopUsing();
+
+void FloorRenderer::setLights(std::vector<Light> lights) {
+    this->lights = lights;
 }
 
 void FloorRenderer::render() {
@@ -224,22 +229,10 @@ void FloorRenderer::render() {
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, NULL);
     glVertexAttribDivisor(2, 1);
 
-    glUniform1i(texture_samplers[0], GL_TEXTURE0);
-    glUniform1i(texture_samplers[1], GL_TEXTURE1);
-    glUniform1i(texture_samplers[2], GL_TEXTURE2);
+    glUniform1i(texture_samplers[0], 0);
 
-    if (diffuse_tex_ID > 0) {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuse_tex_ID);
-    }
-    if (normal_tex_ID > 0) {
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, normal_tex_ID);
-    }
-    if (specular_tex_ID > 0) {
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, specular_tex_ID);
-    }
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture_ID);
 
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, tile_count);
     glVertexAttribDivisor(1, 0);

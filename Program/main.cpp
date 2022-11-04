@@ -23,10 +23,9 @@ int main() {
 		exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_SAMPLES, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	window = glfwCreateWindow(1024, 768, "ZPG", NULL, NULL);
 
 	if (!window) {
@@ -48,6 +47,9 @@ int main() {
 		glfwTerminate();
 		return -1;
 	}
+
+	// Enable anti-aliasing
+	glEnable(GL_MULTISAMPLE);
 	// Enable cube map for skybox
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	// Enable depth test

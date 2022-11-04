@@ -7,6 +7,7 @@
 #include "Util.h"
 #include "Program.h"
 #include "Object.h"
+#include "Light.h"
 
 class AbstractRenderer {
 protected:
@@ -23,12 +24,11 @@ class ObjectRenderer : public AbstractRenderer {
 private:
 	// One object can be displayed multiple times with different transformations
 	std::map<object::Object*, std::vector<trans::Transformation*>> objects;
-	glm::mat3 light;
 
-	GLuint model_matrix_ID, light_ID, mesh_matrix_ID, material_ID;
+	GLuint model_matrix_ID, mesh_matrix_ID, material_ID;
 public:
 	ObjectRenderer(Program* program);
-	void setLight(glm::mat3 light);
+	void setLights(std::vector<Light> lights);
 
 	void addObject(object::Object* obj, trans::Transformation* transformation);
 	void addObject(object::Object* obj, std::vector<trans::Transformation*> transformations);
@@ -49,12 +49,12 @@ public:
 class FloorRenderer : public AbstractRenderer {
 private:
 	GLuint plane_VBO, offset_buffer, rotation_buffer;
-	GLuint diffuse_tex_ID, normal_tex_ID, specular_tex_ID;
+	GLuint texture_ID, lights_ID;
 	int tile_count;
-	glm::mat3 light;
+	std::vector<Light> lights;
 public:
-	FloorRenderer(Program* program, float size, int dimension, GLuint diffuse, GLuint normal, GLuint specular);
-	void setLight(glm::mat3 light);
+	FloorRenderer(Program* program, float size, int dimension, GLuint texture);
+	void setLights(std::vector<Light> lights);
 	void render();
 };
 

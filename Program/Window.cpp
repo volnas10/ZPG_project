@@ -26,7 +26,7 @@ Window::Window(GLFWwindow* window) {
 
     last_time = -1;
 
-    scene = new Scene("forest");
+    scene = new Scene("plane");
     scene->load();
     
     camera = scene->getCamera();
@@ -47,6 +47,7 @@ Window::~Window() {
 }
 
 void Window::start() {
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, window_size.x, window_size.y);
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

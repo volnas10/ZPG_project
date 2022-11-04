@@ -18,6 +18,7 @@
 
 #include "Shader.h"
 #include "Program.h"
+#include "Light.h"
 
 #include "Scene.h"
 
@@ -141,9 +142,9 @@ GLuint loadTextureFromMemory(aiTexture* t) {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, gl_color_type, GL_UNSIGNED_BYTE, data);
 
 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -429,7 +430,7 @@ bool Scene::load() {
 	}
 
 	std::vector<trans::Transformation*> transformations;
-	std::vector<glm::mat3> lights;
+	std::vector<Light> lights;
 	std::vector<Shader> shaders;
 	std::vector<std::pair<object::Object*, std::vector<trans::Transformation*>>> objects;
 	
@@ -543,10 +544,13 @@ bool Scene::load() {
 		}
 		// Load light
 		else if (line.find("Light") != std::string::npos) {
-			glm::vec3 light_pos(.0f, .0f, .0f);
-			glm::vec3 light_color(1.0f, 1.0f, 1.0f);
-			float light_power = 50.0f;
-			float ambient = 0.1;
+			glm::vec3 position(.0f, .0f, .0f);
+			glm::vec3 direction(.0f, .0f, .0f);
+			glm::vec3 color(1.0f, 1.0f, 1.0f);
+			glm::vec3 attenuation(1.0f, 1.0f, 1.0f);
+			float angle = 30.0f;
+			std::string type = "point";
+
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
@@ -555,24 +559,42 @@ bool Scene::load() {
 				sstream >> key;
 				key.pop_back();
 				if (key == "position") {
-					sstream >> light_pos.x >> light_pos.y >> light_pos.z;
+					sstream >> position.x >> position.y >> position.z;
+				}
+				if (key == "direction") {
+					sstream >> direction.x >> direction.y >> direction.z;
 				}
 				else if (key == "color") {
-					sstream >> light_color.x >> light_color.x >> light_color.z;
+					sstream >> color.x >> color.y >> color.z;
 				}
-				else if (key == "power") {
-					sstream >> light_power;
+				else if (key == "angle") {
+					sstream >> angle;
 				}
-				else if (key == "ambient") {
-					sstream >> ambient;
+				else if (key == "type") {
+					sstream >> type;
+				}
+				else if (key == "attenuation") {
+					sstream >> attenuation.x >> attenuation.y >> attenuation.z;
+					if (attenuation.x == 0) {
+						attenuation.x = 1;
+					}
 				}
 				std::getline(description, line);
 			}
-			glm::mat3 light(0.0);
-			light[0] = light_pos;
-			light[1] = light_color;
-			light[2][0] = light_power;
-			light[2][1] = ambient;
+
+			Light light(color);
+			if (type == "point") {
+				light.makePoint(position, attenuation);
+			}
+			else if (type == "directional") {
+				light.makeDirectional(direction);
+			}
+			else if (type == "spotlight") {
+				light.makeSpotlight(position, direction, attenuation, angle);
+			}
+			else if (type == "flashlight") {
+				light.makeFlashlight(attenuation, angle);
+			}
 			lights.push_back(light);
 		}
 
@@ -628,8 +650,8 @@ bool Scene::load() {
 			// Load parameters
 			std::getline(description, line);
 			std::vector<int> object_indices;
+			std::vector<int> light_indices;
 			int program_index;
-			int light_index = -1;
 			while (line.find("}") == std::string::npos) {
 				std::stringstream sstream(line);
 				std::string key;
@@ -641,34 +663,33 @@ bool Scene::load() {
 				else if (key == "program") {
 					sstream >> program_index;
 				}
-				else if (key == "light") {
-					sstream >> light_index;
+				else if (key == "lights") {
+					parseArray(line, &light_indices);
 				}
 				std::getline(description, line);
 			}
 			ObjectRenderer* renderer = new ObjectRenderer(programs[program_index]);
-			std::vector<glm::vec3> obstacles;
-			int count = 200;
+			//std::vector<glm::vec3> obstacles;
+			//int count = 200;
 			for (int object_index : object_indices) {
 				auto pair = objects[object_index];
-				//renderer->addObject(pair.first, pair.second);
+				renderer->addObject(pair.first, pair.second);
 				// Temporary random generator
-				trans::TransformationGenerator generator;
-				generator.setMinDistance(8);
-				std::vector<trans::Transformation*> random_transformations = generator.generateTransformations(count, glm::vec3(-60, 0, -60), glm::vec3(60, 0, 60), pair.second[0]);
-				obstacles = generator.getObstacles();
-				count += 200;
+				//trans::TransformationGenerator generator;
+				//generator.setMinDistance(8);
+				//std::vector<trans::Transformation*> random_transformations = generator.generateTransformations(count, glm::vec3(-60, 0, -60), glm::vec3(60, 0, 60), pair.second[0]);
+				//obstacles = generator.getObstacles();
+				//count += 200;
 
-				for (trans::Transformation* t : random_transformations) {
-					renderer->addObject(pair.first, t);
-				}
+				//for (trans::Transformation* t : random_transformations) {
+				//	renderer->addObject(pair.first, t);
+				//}
 			}
-			if (light_index > -1) {
-				renderer->setLight(lights[light_index]);
+			std::vector<Light> light_selection;
+			for (int idx : light_indices) {
+				light_selection.push_back(lights[idx]);
 			}
-			else {
-				renderer->setLight(glm::mat3(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 50.0f, .0f, .0f));
-			}
+			renderer->setLights(light_selection);
 			renderers.push_back(renderer);
 		}
 		// Load skybox
@@ -750,12 +771,10 @@ bool Scene::load() {
 
 		// Load floor
 		else if (line.find("Floor") != std::string::npos) {
-			GLuint diffuse_texture = 0;
-			GLuint normal_texture = 0;
-			GLuint specular_texture = 0;
+			GLuint texture = 0;
 			float size = 1.0;
 			float dimension = 1;
-			int light = -1;
+			std::vector<int> light_indices;
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
@@ -763,20 +782,10 @@ bool Scene::load() {
 				std::string key;
 				sstream >> key;
 				key.pop_back();
-				if (key == "diffuse_texture") {
+				if (key == "texture") {
 					std::string value;
 					sstream >> value;
-					diffuse_texture = loadTexture((path + value).c_str());
-				}
-				else if (key == "normal_map") {
-					std::string value;
-					sstream >> value;
-					normal_texture = loadTexture((path + value).c_str());
-				}
-				else if (key == "specular_map") {
-					std::string value;
-					sstream >> value;
-					specular_texture = loadTexture((path + value).c_str());
+					texture = loadTexture((path + value).c_str());
 				}
 				else if (key == "size") {
 					sstream >> size;
@@ -785,7 +794,9 @@ bool Scene::load() {
 					sstream >> dimension;
 				}
 				else if (key == "light") {
-					sstream >> light;
+					std::string arr;
+					sstream >> arr;
+					parseArray(arr, &light_indices);
 				}
 				std::getline(description, line);
 			}
@@ -793,10 +804,12 @@ bool Scene::load() {
 			shaders.push_back(Shader("FloorVertexShader.glsl", GL_VERTEX_SHADER));
 			shaders.push_back(Shader("FloorFragmentShader.glsl", GL_FRAGMENT_SHADER));
 			Program* floor_program = new Program(shaders);
-			FloorRenderer* renderer = new FloorRenderer(floor_program, size, dimension, diffuse_texture, normal_texture, specular_texture);
-			if (light > -1) {
-				renderer->setLight(lights[light]);
+			FloorRenderer* renderer = new FloorRenderer(floor_program, size, dimension, texture);
+			std::vector<Light> light_selection;
+			for (int idx : light_indices) {
+				light_selection.push_back(lights[idx]);
 			}
+			renderer->setLights(light_selection);
 			programs.push_back(floor_program);
 			renderers.insert(renderers.begin(), 1, renderer);
 		}

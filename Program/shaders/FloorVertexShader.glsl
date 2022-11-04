@@ -6,6 +6,7 @@ layout (location = 2) in float TileRotation;
 out vec2 uv;
 out vec3 eyeDirection_cs;
 out vec3 lightDirection_cs;
+out vec3 normal_cs;
 
 uniform mat4 ProjectionMatrix;
 uniform mat4 ViewMatrix;
@@ -29,9 +30,11 @@ void main()
     if (VertexPosition.x > 0) uv.x = 1.0;
     if (VertexPosition.z > 0) uv.y = 1.0;
 
-    vec3 vertexPosition_cs = mat3(ViewMatrix) * vertexPosition;
+    vec3 vertexPosition_cs = (ViewMatrix *  vec4(vertexPosition, 1)).xyz;
     eyeDirection_cs = vec3(0,0,0) - vertexPosition_cs;
 
-    vec3 lightPosition_cs = ( ViewMatrix * vec4(LightMatrix[0],1)).xyz;
+    vec3 lightPosition_cs = (ViewMatrix * vec4(LightMatrix[0],1)).xyz;
 	lightDirection_cs = lightPosition_cs + eyeDirection_cs;
+
+    normal_cs = (ViewMatrix * vec4(0, 1, 0, 0)).xyz;
 }  

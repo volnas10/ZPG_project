@@ -24,15 +24,13 @@ Program {
 	shaders: [0, 1]
 }
 Light {
-	position: 0 20 0
+	position: 40 25 -40
 	color: 1 1 1
 	power: 1.5
 	ambient: 0.2
 }
 Floor {
-	diffuse_texture: floor/grass01.jpg
-	normal_map: floor/grass01_n.jpg
-	specular_map: floor/grass01_s.jpg
+	texture: grass01.jpg
 	size: 2.0
 	dimension: 60
 	light: 0
@@ -46,4 +44,7 @@ Camera {
 	position: 0.0 0.0 -1.0
 	lookat: 0.0 0.0 0.0
 	fov: 70
+}
+Skybox {
+	name: skybox.png
 }
