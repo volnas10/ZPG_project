@@ -15,10 +15,15 @@
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Object.cpp" />
+    <ClCompile Include="Observers.cpp" />
     <ClCompile Include="Program.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="RenderingScheduler.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="ShadowMapper.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TransformationBuffer.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
@@ -29,6 +34,10 @@
     <None Include="shaders\FragmentShader_simple.glsl" />
     <None Include="shaders\MultiLightFragmentShader.glsl" />
     <None Include="shaders\MultiLightVertexShader.glsl" />
+    <None Include="shaders\NewFragmentShader.glsl" />
+    <None Include="shaders\NewVertexShader.glsl" />
+    <None Include="shaders\ShadowFragmentShader.glsl" />
+    <None Include="shaders\ShadowVertexShader.glsl" />
     <None Include="shaders\SunFragmentShader.glsl" />
     <None Include="shaders\VertexShader.glsl" />
     <None Include="shaders\SkyboxFragmentShader.glsl" />
@@ -39,10 +48,15 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="Observers.h" />
     <ClInclude Include="Program.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="RenderingScheduler.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="ShadowMapper.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="TransformationBuffer.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>

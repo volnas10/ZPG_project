@@ -19,6 +19,8 @@ private:
 	Camera* camera;
 
 	double last_time;
+	double total_time;
+	double frame_count;
 	bool cursor_locked;
 
 	// Handle window resize

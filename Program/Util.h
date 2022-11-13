@@ -9,6 +9,8 @@
 
 #define PI 3.14159
 
+class TransformationBuffer;
+
 namespace trans {
 
 	class TransformationComponent {
@@ -58,6 +60,10 @@ namespace trans {
 	class Transformation : TransformationComponent {
 	private:
 		std::vector<Transformation*> parents;
+
+		// Vector of transformation buffers containing this transormation
+		std::vector<std::pair<TransformationBuffer*, size_t>> dependent_buffers;
+
 		// Vector of transformations that depend on this transformation
 		std::vector<TransformationComponent*> transformations;
 	public:
@@ -69,6 +75,7 @@ namespace trans {
 
 		void operator<<(Transformation& b);
 		void addParent(Transformation* t);
+		void addDependency(size_t index, TransformationBuffer* buffer);
 
 		Position* translate(float x, float y, float z);
 		Rotation* rotate(float x, float y, float z);

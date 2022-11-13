@@ -19,23 +19,23 @@ Camera::Camera(glm::vec3 position, float fov, float horizontal_angle, float vert
 	move(glm::vec3(0), 0, 0);
 }
 
-void Camera::subscribe(Program* program) {
-	subscribers.push_back(program);
-	program->notify(view_matrix, projection_matrix);
+void Camera::subscribe(CameraSubscriber* subscriber) {
+	subscribers.push_back(subscriber);
+	subscriber->updateCamera(view_matrix, projection_matrix);
 }
 
 void Camera::notifySubscribers() {
-	for (Program* program : subscribers) {
-		program->notify(view_matrix, projection_matrix);
+	for (CameraSubscriber* sub : subscribers) {
+		sub->updateCamera(view_matrix, projection_matrix);
 	}
 }
 
 void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
-	horizontal_angle = std::fmod(horizontal_angle + h_angle, 2 * PI);
-	vertical_angle = std::fmod(vertical_angle + v_angle, 2 * PI);
+	horizontal_angle = (float) std::fmod(horizontal_angle + h_angle, 2 * PI);
+	vertical_angle = (float) std::fmod(vertical_angle + v_angle, 2 * PI);
 
-	if (vertical_angle < -PI / 2) vertical_angle = -PI / 2;
-	else if (vertical_angle > PI / 2) vertical_angle = PI / 2;
+	if (vertical_angle < -PI / 2) vertical_angle = (float)  - PI / 2;
+	else if (vertical_angle > PI / 2) vertical_angle = (float) PI / 2;
 
 	glm::vec3 direction(
 	    cos(vertical_angle) * sin(horizontal_angle),
@@ -64,7 +64,7 @@ void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
 	notifySubscribers();
 }
 
-void Camera::changeFov(double value) {
+void Camera::changeFov(float value) {
 	float new_fov = fov - value;
 	if (new_fov > 20 && new_fov < 120) {
 		fov = new_fov;

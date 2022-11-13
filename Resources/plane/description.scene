@@ -1,23 +1,32 @@
 Transformation {
 	scale: 5.0 5.0 5.0
 }
+Model {
+	name: plane.obj
+}
 Object {
-	model: plane.obj
+	model: 0
 	transformations: [0]
 }
 Light {
-	type: flashlight
+	type: point
 	color: 1.0 1.0 1.0
-	attenuation: 0.2 0.3 0.0
-	angle: 60
+	attenuation: 0.5 0.4 0.0
+	position: -1.0 1.0 -1.0
+}
+Light {
+	type: point
+	color: 1.0 1.0 1.0
+	attenuation: 0.5 0.4 0.0
+	position: 5.0 1.0 5.0
 }
 Shader {
 	type: vertex
-	name: MultiLightVertexShader.glsl
+	name: NewVertexShader.glsl
 }
 Shader {
 	type: fragment
-	name: MultiLightFragmentShader.glsl
+	name: NewFragmentShader.glsl
 }
 Program {
 	shaders: [0, 1]
@@ -25,10 +34,9 @@ Program {
 Renderer {
 	objects: [0]
 	program: 0
-	lights: [0]
 }
 Camera {
-	position: 4.0 0.0 -4.0
+	position: 0.0 0.0 -1.0
 	lookat: 0.0 0.0 0.0
 	fov: 70.0
 }

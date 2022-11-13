@@ -35,7 +35,12 @@ Program::Program(std::vector<Shader> shaders) {
 	}
 
 	view_ID = glGetUniformLocation(program_ID, "ViewMatrix");
-	projection_ID = glGetUniformLocation(program_ID, "ProjectionMatrix");
+	projection_view_ID = glGetUniformLocation(program_ID, "ProjectionViewMatrix");
+	light_count_ID = glGetUniformLocation(program_ID, "LightCount");
+
+	glGenBuffers(1, &lights_buffer);
+	glBindBuffer(GL_UNIFORM_BUFFER, lights_buffer);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light::LightStruct) * 10, NULL, GL_DYNAMIC_DRAW);
 }
 
 Program::~Program() {
@@ -50,11 +55,21 @@ void Program::stopUsing() {
 	glUseProgram(0);
 }
 
-void Program::notify(glm::mat4 view_matrix, glm::mat4 projection_matrix) {
+void Program::updateCamera(glm::mat4 view_matrix, glm::mat4 projection_matrix) {
 	glProgramUniformMatrix4fv(program_ID, view_ID, 1, GL_FALSE, &view_matrix[0][0]);
-	glProgramUniformMatrix4fv(program_ID, projection_ID, 1, GL_FALSE, &projection_matrix[0][0]);
+	glm::mat4 PVmat = projection_matrix * view_matrix;
+	glProgramUniformMatrix4fv(program_ID, projection_view_ID, 1, GL_FALSE, &PVmat[0][0]);
 }
 
+void Program::updateLights(std::vector<Light::LightStruct> lights) {
+	glBindBuffer(GL_UNIFORM_BUFFER, lights_buffer);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, lights.size() * sizeof(Light::LightStruct), &lights[0]);
+	for (int i = 0; i < lights.size(); i++) {
+		glBindBufferRange(GL_UNIFORM_BUFFER, 2 + i, lights_buffer, 256 * i, sizeof(Light::LightStruct));
+	}
+
+	glProgramUniform1i(program_ID, light_count_ID, lights.size());
+}
 
 
 GLuint Program::getUniformLocation(std::string name) {

@@ -1,5 +1,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
+#include "TransformationBuffer.h"
+
 #include "Util.h"
 
 namespace trans {
@@ -71,6 +74,9 @@ namespace trans {
 		for (Transformation* t : parents) {
 			t->changed();
 		}
+		for (auto pair : dependent_buffers) {
+			pair.first->updateTransformation(pair.second, getTransformation());
+		}
 	}
 
 	void Transformation::operator<<(Transformation& b) {
@@ -81,6 +87,10 @@ namespace trans {
 	void Transformation::addParent(Transformation* t) {
 		parents.push_back(t);
 		up_to_date = false;
+	}
+
+	void Transformation::addDependency(size_t index, TransformationBuffer* buffer) {
+		dependent_buffers.push_back(std::make_pair(buffer, index));
 	}
 
 	Position* Transformation::translate(float x, float y, float z) {
@@ -233,4 +243,5 @@ namespace stringutil {
 		}
 	}
 }
+
 

@@ -8,12 +8,14 @@
 #include <iostream>
 
 #include "Window.h"
+#include "RenderingScheduler.h"
 
 #define MOVEMENT_SPEED 2.0f
 
 Window::Window(GLFWwindow* window) {
 	this->window = window;
     this->cursor_locked = true;
+    this->frame_count = 0;
     // Set callbacks
 	glfwSetWindowUserPointer(window, reinterpret_cast<void*>(this));
     glfwSetScrollCallback(window, scrollCallback);
@@ -47,22 +49,25 @@ Window::~Window() {
 }
 
 void Window::start() {
-    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, window_size.x, window_size.y);
+
+    RenderingScheduler rendering_scheduler;
+    rendering_scheduler.setLights(scene->getLights());
+    rendering_scheduler.addRenderingGroups(scene->getObjects(), scene->getRenderingGroups());
+    rendering_scheduler.addOtherRenderers(scene->getRenderers());
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         scene->moveObjects(glfwGetTime() - last_time);
         handleInput();
 
-        // Render scene
-        for (AbstractRenderer* renderer : scene->getRenderers()) {
-            renderer->render();
-        }
+        // Render everything
+        rendering_scheduler.render();
+        frame_count++;
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+    std::cout << "Average framerate: " << frame_count / total_time << " FPS" << std::endl;
 }
 
 void Window::windowResizeCallback(GLFWwindow* window, int width, int height) {
@@ -119,6 +124,7 @@ void Window::handleInput() {
 
     double current_time = glfwGetTime();
     float delta_time = float(current_time - last_time);
+    total_time += delta_time;
 
     float horizontal_angle = 0;
     float vertical_angle = 0;

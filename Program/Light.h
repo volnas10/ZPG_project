@@ -3,24 +3,17 @@
 #define LIGHT_H
 
 #include <glm/glm.hpp>
+#include <vector>
 
 class Light {
-private:
-	enum Type;
-	Type light_type;
-	glm::vec3 color;
-	glm::vec3 position;
-	glm::vec3 direction;
-	glm::vec3 attenuation;
-	float angle;
 public:
-	static enum Type{POINT = 0, DIRECTIONAL = 1, SPOTLIGHT = 2, FLASHLIGHT = 3};
+	enum Type{POINT, DIRECTIONAL, SPOTLIGHT, FLASHLIGHT};
 	struct LightStruct {
 		glm::vec4 color; // vec3 color + float power
 		glm::vec4 position;
 		glm::vec4 direction;
 		glm::vec4 attenuation; // constant, linear, quadratic
-		float angle;
+		float angle_precalculated; // Little optimization
 		unsigned int type;
 		int padding[46];
 	};
@@ -31,7 +24,31 @@ public:
 	void makeSpotlight(glm::vec3 position, glm::vec3 direction, glm::vec3 attenuation, float angle);
 	void makeFlashlight(glm::vec3 attenuation, float angle);
 
+	glm::mat4 getProjectionMatrix();
+
 	LightStruct toStruct();
+
+private:
+	Type light_type;
+	glm::vec3 color;
+	glm::vec3 position;
+	glm::vec3 direction;
+	glm::vec3 attenuation;
+	float angle;
+};
+
+class LightSubscriber;
+
+class LightCollection {
+private:
+	std::vector<Light> lights;
+	std::vector<LightSubscriber*> subscribers;
+public:
+	void addLight(Light light);
+
+	void subscribe(LightSubscriber* subscriber);
+	void notifySubscribers();
+
 };
 
 #endif

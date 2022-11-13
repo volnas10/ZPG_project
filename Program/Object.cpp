@@ -1,64 +1,29 @@
 #include "Object.h"
 
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
 namespace object {
 	Mesh* object::Object::addMesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
-		std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices, Material material) {
+		std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices,
+		Material material, std::vector<Texture*> textures) {
 		
-		Mesh* mesh = new Mesh(vertices, normals, uvs, tangents, bitangents, indices, material);
-		meshes.push_back(std::make_pair(mesh, std::vector<trans::Transformation*>()));
+		Mesh* mesh = new Mesh(vertices, normals, uvs, tangents, bitangents, indices, material, textures);
+		meshes.push_back(mesh);
 		return mesh;
 	}
 
-	void Object::transformMesh(unsigned int index, trans::Transformation* transformation) {
-		meshes[index].second.push_back(transformation);
-	}
-
-	void Object::transformMesh(unsigned int index, std::vector<trans::Transformation*> transformations) {
-		meshes[index].second = transformations;
-	}
-
-	bool Object::prepareMesh(size_t* size, GLuint mesh_trans_uniform, GLuint material_uniform) {
-		if (next_trans == 0) {
-			meshes[next_mesh].first->prepareForDraw();
-		}
-
-		glm::mat4 model_matrix(1.0);
-		if (meshes[next_mesh].second.size() > 0) {
-			model_matrix = meshes[next_mesh].second[next_trans]->getTransformation();
-		}
-		glUniformMatrix4fv(mesh_trans_uniform, 1, GL_FALSE, &model_matrix[0][0]);
-
-		*size = meshes[next_mesh].first->size();
-
-		if (next_trans + 1 >= meshes[next_mesh].second.size()) {
-			next_trans = 0;
-			if (next_mesh + 1 >= meshes.size()) {
-				next_mesh = 0;
-				return false;
-			}
-			next_mesh++;
-		}
-		else {
-			next_trans++;
-		}
-		
-		return true;
+	std::vector<Mesh*> Object::getMeshes() {
+		return meshes;
 	}
 
 	Mesh::Mesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
-		std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices, Material material) {
-
-		//this->vertices = vertices;
-		//this->normals = normals;
-		//this->uvs = uvs;
-		//this->tangents = tangents;
-		//this->bitangents = bitangents;
-		//this->indices = indices;
+		std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices,
+		Material material, std::vector<Texture*> textures) {
 
 		index_count = indices.size();
 		this->material = material;
+		this->textures = textures;
 
 		glGenBuffers(1, &VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -94,7 +59,7 @@ namespace object {
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(material), &material, GL_DYNAMIC_DRAW);
 	}
 
-	void Mesh::prepareForDraw() {
+	void Mesh::bind() {
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -118,25 +83,31 @@ namespace object {
 		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
 		// Add textrue manager later
-		if (material.diffuse_texture > 0) {
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, material.diffuse_texture);
-		}
-		if (material.normal_map > 0) {
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, material.normal_map);
-		}
-		if (material.opacity_map > 0) {
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, material.opacity_map);
-		}
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
-		glBindBufferBase(GL_UNIFORM_BUFFER, 0, material_buffer);
+	}
+
+	void Mesh::bindUniforms(GLuint material_binding, GLuint diffuse_t, GLuint normal_t, GLuint opacity_t, GLuint has_textures) {
+		glBindBufferBase(GL_UNIFORM_BUFFER, material_binding, material_buffer);
+		glm::vec3 enabled(0.0);
+		for (Texture* t : textures) {
+			if (t->getType() == Texture::DIFFUSE) {
+				glUniform1i(diffuse_t, t->getUnit());
+				enabled.x = 1;
+			}
+			else if (t->getType() == Texture::NORMAL) {
+				glUniform1i(normal_t, t->getUnit());
+				enabled.y = 1;
+			}
+			else if (t->getType() == Texture::OPACITY) {
+				glUniform1i(opacity_t, t->getUnit());
+				enabled.z = 1;
+			}
+		}
+		glUniform3fv(has_textures, 1, glm::value_ptr(enabled));
 	}
 
 	size_t Mesh::size() {
-		//return indices.size();
 		return index_count;
 	}
 }

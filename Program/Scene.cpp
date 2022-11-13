@@ -13,220 +13,15 @@
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
-#include <freeimage.h>
-
 
 #include "Shader.h"
 #include "Program.h"
 #include "Light.h"
+#include "Texture.h"
 
 #include "Scene.h"
 
 using namespace Assimp;
-
-GLuint loadTexture(const char* filename) {
-	FREE_IMAGE_FORMAT format = FIF_UNKNOWN;
-	FIBITMAP* dib(0);
-	unsigned char* data(0);
-	unsigned int width(0), height(0);
-	std::cout << "Loading texture from file: " << filename << std::endl;
-
-	format = FreeImage_GetFileType(filename, 0);
-
-	if (format == FIF_UNKNOWN) {
-		format = FreeImage_GetFIFFromFilename(filename);
-	}
-	if (format == FIF_UNKNOWN) {
-		std::cout << "Uknown texture format: " << filename << std::endl;
-		return 0;
-	}
-
-	if (FreeImage_FIFSupportsReading(format)) {
-		dib = FreeImage_Load(format, filename);
-	}
-	if (!dib) {
-		std::cout << "Could not load texture: " << filename << std::endl;
-		return 0;
-	}
-
-	FREE_IMAGE_COLOR_TYPE fi_color_type = FreeImage_GetColorType(dib);
-	GLenum gl_color_type;
-	if (fi_color_type == FIC_RGB) {
-		gl_color_type = GL_BGR;
-	}
-	else if (fi_color_type == FIC_RGBALPHA) {
-		gl_color_type = GL_BGRA;
-	}
-	else if (fi_color_type == FIC_MINISBLACK) {
-		dib = FreeImage_ConvertTo24Bits(dib);
-		gl_color_type = GL_RGB;
-	}
-	else {
-		std::cout << "Unsupported color type: " << filename << std::endl;
-		FreeImage_Unload(dib);
-		return 0;
-	}
-
-	data = FreeImage_GetBits(dib);
-
-	width = FreeImage_GetWidth(dib);
-	height = FreeImage_GetHeight(dib);
-
-
-	GLuint texture_ID;
-	glGenTextures(1, &texture_ID);
-
-	glBindTexture(GL_TEXTURE_2D, texture_ID);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, gl_color_type, GL_UNSIGNED_BYTE, data);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	FreeImage_Unload(dib);
-
-
-	return texture_ID;
-}
-
-GLuint loadTextureFromMemory(aiTexture* t) {
-	FREE_IMAGE_FORMAT format = FIF_UNKNOWN;
-	FIBITMAP* dib(0);
-	unsigned char* data(0);
-	unsigned int width(0), height(0);
-
-	std::cout << "Loading texture from memory: " << t->mFilename.C_Str() << std::endl;
-
-	std::string format_name(t->achFormatHint);
-	// FreeImage doesn't recognize .jpg
-	if (format_name == "jpg") {
-		format_name = "jpeg";
-	}
-
-	format = FreeImage_GetFIFFromFormat(format_name.c_str());
-	FIMEMORY* memory = FreeImage_OpenMemory(reinterpret_cast<BYTE*>(t->pcData), t->mWidth);
-	dib = FreeImage_LoadFromMemory(format, memory);
-	FreeImage_CloseMemory(memory);
-
-	if (!dib) {
-		std::cout << "Could not load texture: " << t->mFilename.C_Str() << std::endl;
-		return 0;
-	}
-
-	width = FreeImage_GetWidth(dib);
-	height = FreeImage_GetHeight(dib);
-	data = FreeImage_GetBits(dib);
-
-	FREE_IMAGE_COLOR_TYPE fi_color_type = FreeImage_GetColorType(dib);
-	GLenum gl_color_type;
-	if (fi_color_type == FIC_RGB) {
-		gl_color_type = GL_BGR;
-	}
-	else if (fi_color_type == FIC_RGBALPHA) {
-		gl_color_type = GL_RGBA;
-	}
-	else if (fi_color_type == FIC_MINISBLACK) {
-		gl_color_type = GL_LUMINANCE;
-	}
-	else {
-		std::cout << "Unsupported color type: " << t->mFilename.C_Str() << std::endl;
-		FreeImage_Unload(dib);
-		return 0;
-	}
-
-	GLuint texture_ID;
-	glGenTextures(1, &texture_ID);
-	glBindTexture(GL_TEXTURE_2D, texture_ID);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, gl_color_type, GL_UNSIGNED_BYTE, data);
-
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	FreeImage_Unload(dib);
-	return texture_ID;
-}
-
-GLuint loadSkybox(std::string path) {
-	FREE_IMAGE_FORMAT format = FIF_UNKNOWN;
-	FIBITMAP* dib(0);
-	unsigned char* data(0);
-	unsigned int width(0), height(0);
-
-	format = FreeImage_GetFileType(path.c_str(), 0);
-
-	if (format == FIF_UNKNOWN) {
-		format = FreeImage_GetFIFFromFilename(path.c_str());
-	}
-	if (format == FIF_UNKNOWN) {
-		std::cout << "Uknown texture format: " << path << std::endl;
-		return 0;
-	}
-
-	if (FreeImage_FIFSupportsReading(format)) {
-		dib = FreeImage_Load(format, path.c_str());
-	}
-	if (!dib) {
-		std::cout << "Could not load texture: " << path << std::endl;
-		return 0;
-	}
-
-
-	data = FreeImage_GetBits(dib);
-
-	width = FreeImage_GetWidth(dib);
-	height = FreeImage_GetHeight(dib);
-
-
-	GLenum gl_color_type;
-	int bytes_per_color;
-	if (format == FIF_BMP || format == FIF_JPEG) {
-		gl_color_type = GL_BGR;
-		bytes_per_color = 3;
-	}
-	else if (format == FIF_PNG) {
-		gl_color_type = GL_BGRA;
-		bytes_per_color = 4;
-	}
-	else {
-		std::cout << "Unsupported color type: " << path << std::endl;
-		FreeImage_Unload(dib);
-		return 0;
-	}
-
-	int face_size = width / 4;
-	GLuint texture_ID;
-	glGenTextures(1, &texture_ID);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, texture_ID);
-	int offsets[6][2] = { {2, 1}, {0, 1}, {1, 0}, {1, 2}, {1, 1}, {3, 1}};
-	unsigned char* face = new unsigned char[face_size * face_size * bytes_per_color];
-	for (int i = 0; i < 6; i++) {
-		int offset_x = offsets[i][0] * face_size;
-		int offset_y = offsets[i][1] * face_size;
-
-		for (int j = 0; j < face_size; j++) {
-			unsigned int memory_offset = (offset_y * width + j * width + offset_x) * bytes_per_color;
-			std::copy(data + memory_offset, data + memory_offset + face_size * bytes_per_color, face + face_size * j * bytes_per_color);
-		}
-
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-			0, GL_RGBA, face_size, face_size, 0, gl_color_type, GL_UNSIGNED_BYTE, face
-		);
-	}
-
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-	return texture_ID;
-}
 
 void parseArray(std::string line, std::vector<int>* storage) {
 	size_t start = line.find("[");
@@ -244,40 +39,17 @@ void parseArray(std::string line, std::vector<int>* storage) {
 	}
 }
 
-void nodeBuilder(aiNode* node, trans::Transformation* parent_trans,
-	std::map<unsigned int, std::vector<trans::Transformation*>>* mesh_transformations) {
-
-	if (node->mNumChildren == 0 && node->mNumMeshes == 0) return;
-	aiMatrix4x4 transformation = node->mTransformation;
-	glm::mat4 matrix(
-		transformation.a1, transformation.a2, transformation.a3, transformation.a4,
-		transformation.b1, transformation.b2, transformation.b3, transformation.b4,
-		transformation.c1, transformation.c2, transformation.c3, transformation.c4,
-		transformation.d1, transformation.d2, transformation.d3, transformation.d4);
-
-	trans::Transformation* t = new trans::Transformation();
-	t->addMatrix(matrix);
-	if (parent_trans != nullptr) {
-		*t << *parent_trans;
-	}
-	for (int i = 0; i < node->mNumMeshes; i++) {
-		(*mesh_transformations)[node->mMeshes[i]].push_back(t);
-	}
-
-	for (int i = 0; i < node->mNumChildren; i++) {
-		nodeBuilder(node->mChildren[i], t, mesh_transformations);
-	}
-}
-
 object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
-	std::vector<GLuint> memory_textures;
-	std::vector<object::Material> materials;
+	std::vector<Texture*> memory_textures;
+	std::vector<std::pair<object::Material, std::vector<Texture*>>> materials;
 	object::Object* object = new object::Object();
 
-	// Load tetxures from memory
+	// Load textures from memory
 	for (unsigned int t_index = 0; t_index < scene->mNumTextures; t_index++) {
 		aiTexture* texture = scene->mTextures[t_index];
-		memory_textures.push_back(loadTextureFromMemory(texture));
+		Texture* t = new Texture();
+		t->loadFromMemory(texture);
+		memory_textures.push_back(t);
 	}
 
 	// Parse materials
@@ -286,6 +58,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 
 		// Extract properties from assimp material
 		object::Material my_material;
+		std::vector<Texture*> textures;
 		aiColor3D color;
 		float val;
 
@@ -328,34 +101,36 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 			aiString texture_name;
 			material->Get(AI_MATKEY_TEXTURE(type, 0), texture_name);
 
-			unsigned int texture_ID = 0;
+			Texture* t;
 			// Embedded texture
 			if (texture_name.C_Str()[0] == '*') {
-				texture_ID = memory_textures[atoi(texture_name.C_Str() + 1)];
+				t = memory_textures[atoi(texture_name.C_Str() + 1)];
 			}
 			// Texture from file
 			else {
 				aiString full_path = path;
 				full_path.Append(texture_name.C_Str());
 				stringutil::replaceChar(full_path.data, '\\', '/');
-				texture_ID = loadTexture(full_path.C_Str());
+				t = new Texture();
+				t->load(full_path.C_Str());
 			}
 
-			if (texture_ID <= 0) continue;
+			if (t == nullptr) continue;
 
 			if (type == aiTextureType_DIFFUSE) {
-				my_material.diffuse_texture = texture_ID;
+				t->setType(Texture::DIFFUSE);
 			}
 			else if (type == aiTextureType_HEIGHT) {
-				my_material.normal_map = texture_ID;
+				t->setType(Texture::NORMAL);
 			}
 			// With one testing model opacity is stored under normals so... I'll use it
 			else if (type == aiTextureType_NORMALS) {
-				my_material.opacity_map = texture_ID;
+				t->setType(Texture::OPACITY);
 			}
+			textures.push_back(t);
 		}
 
-		materials.push_back(my_material);
+		materials.push_back(std::make_pair(my_material, textures));
 	}
 
 	// Parse meshes
@@ -391,16 +166,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 				indices.push_back(face.mIndices[idx]);
 			}
 		}
-		object->addMesh(vertices, normals, uvs, tangents, bitangents, indices, materials[mesh->mMaterialIndex]);
-	}
-
-	// Build the object from meshes and transformations
-	aiNode* root_node = scene->mRootNode;
-
-	std::map<unsigned int, std::vector<trans::Transformation*>> mesh_transformations;
-	nodeBuilder(root_node, nullptr, &mesh_transformations);
-	for (auto pair : mesh_transformations) {
-		object->transformMesh(pair.first, pair.second);
+		object->addMesh(vertices, normals, uvs, tangents, bitangents, indices, materials[mesh->mMaterialIndex].first, materials[mesh->mMaterialIndex].second);
 	}
 
 	return object;
@@ -412,12 +178,13 @@ Scene::Scene(std::string name) {
 
 Scene::~Scene() {
 	delete camera;
-	for (AbstractRenderer* r : renderers) {
+	for (AbstractRenderer* r : other_renderers) {
 		delete r;
 	}
 	for (Program* p : programs) {
 		delete p;
 	}
+	delete lights;
 }
 
 bool Scene::load() {
@@ -430,9 +197,9 @@ bool Scene::load() {
 	}
 
 	std::vector<trans::Transformation*> transformations;
-	std::vector<Light> lights;
 	std::vector<Shader> shaders;
-	std::vector<std::pair<object::Object*, std::vector<trans::Transformation*>>> objects;
+	lights = new LightCollection();
+	std::vector<glm::vec3> obstacles;
 	
 	Importer importer;
 	std::string line;
@@ -440,7 +207,7 @@ bool Scene::load() {
 		std::getline(description, line);
 		if (description.eof()) break;
 		// Load transformation
-		if (line.find("Transformation") != std::string::npos) {
+		if (line.find("Transformation") == 0) {
 			trans::Transformation* transformation = new trans::Transformation();
 			// Load parameters
 			std::getline(description, line);
@@ -459,6 +226,7 @@ bool Scene::load() {
 					float x, y, z;
 					sstream >> x >> y >> z;
 					t_leaf = transformation->translate(x, y, z);
+					obstacles.push_back(glm::vec3(x, y, z));
 				}
 				else if (key == "rotation") {
 					float x, y, z;
@@ -484,9 +252,43 @@ bool Scene::load() {
 			// All parameters loaded, save transformation
 			transformations.push_back(transformation);
 		}
+		// Load model
+		else if (line.find("Model") == 0) {
+			// Load parameters
+			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "name") {
+					std::string name;
+					sstream >> name;
+
+					const aiScene* scene = importer.ReadFile((path + name).c_str(),
+						aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace);
+					if (!scene) {
+						description.close();
+						std::cout << "Cannot load object " << name << std::endl;
+						std::cout << importer.GetErrorString() << std::endl;
+						continue;
+					}
+
+					std::string model_path = path;
+					size_t last_slash = name.rfind('/');
+					if (last_slash != std::string::npos) {
+						path += name.substr(0, last_slash);
+					}
+
+					object::Object* obj = parseObject(scene, aiString(model_path));
+					models.push_back(obj);
+				}
+				std::getline(description, line);
+			}
+		}
 		// Load object
-		else if (line.find("Object") != std::string::npos) {
-			std::map<std::string, std::string> values;
+		else if (line.find("Object") == 0) {
+			int model_index = 0;
 			std::vector<int> trans_indices;
 			// Load parameters
 			std::getline(description, line);
@@ -497,27 +299,14 @@ bool Scene::load() {
 				key.pop_back();
 				if (key == "transformations") {
 					parseArray(line, &trans_indices);
-					std::getline(description, line);
-					continue;
 				}
-				std::string value;
-				sstream >> value;
-				values[key] = value;
+				else  if (key == "model") {
+					sstream >> model_index;
+				}
+
 				std::getline(description, line);
 			}
 
-			std::string object_path = path + values["path"];
-			const aiScene* scene = importer.ReadFile((object_path + values["model"]).c_str(),
-				aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace);
-			if (!scene) {
-				description.close();
-				std::cout << "Cannot load object " << values["model"] << std::endl;
-				std::cout << importer.GetErrorString() << std::endl;
-				continue;
-			}
-
-			object::Object* obj = parseObject(scene, aiString(object_path));
-			obj->name = values["model"];
 			std::vector<trans::Transformation*> object_transformations;
 			for (int idx : trans_indices) {
 				object_transformations.push_back(transformations[idx]);
@@ -525,25 +314,70 @@ bool Scene::load() {
 			if (object_transformations.size() == 0) {
 				object_transformations.push_back(new trans::Transformation());
 			}
-			objects.push_back(std::make_pair(obj, object_transformations));
-
-			// Load lights from scene if present
-			//if (scene->HasLights()) {
-			//	for (int i = 0; i < scene->mNumLights; i++) {
-			//		aiLight* light = scene->mLights[i];
-			//		aiVector3D pos = light->mPosition;
-			//		aiColor3D color = light->mColorDiffuse;
-			//		float power = light->mAttenuationConstant;
-			//		glm::mat3 light_matrix(0.0);
-			//		light_matrix[0] = glm::vec3(pos.x, pos.y, pos.z);
-			//		light_matrix[1] = glm::vec3(color.r, color.g, color.b);
-			//		light_matrix[2][0] = power;
-			//		lights.push_back(light_matrix);
-			//	}
-			//}
+			objects.push_back(std::make_pair(models[model_index], object_transformations));
 		}
+		// Make object randomized
+		else if (line.find("RandomizeObject") == 0) {
+			int model_index = 0;
+			int count = 1;
+			float distance = 0;
+			bool use_obstacles = false;
+			glm::vec3 bound1;
+			glm::vec3 bound2;
+			trans::Transformation* base_trans = nullptr;
+			// Load parameters
+			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "base") {
+					int index;
+					sstream >> index;
+					base_trans = transformations[index];
+				}
+				else if (key == "model") {
+					sstream >> model_index;
+				}
+				else if (key == "count") {
+					sstream >> count;
+				}
+				else if (key == "distance") {
+					sstream >> distance;
+				}
+				else if (key == "obstacles") {
+					std::string val;
+					sstream >> val;
+					if (val == "true") {
+						use_obstacles = true;
+					}
+				}
+				else if (key == "bounds") {
+					sstream >> bound1.x >> bound1.y >> bound1.z >> bound2.x >> bound2.y >> bound2.z;
+				}
+
+				std::getline(description, line);
+			}
+			trans::TransformationGenerator generator;
+			generator.setMinDistance(distance);
+			if (use_obstacles) {
+				generator.addObstacles(obstacles);
+			}
+
+			std::vector<trans::Transformation*> random_transformations;
+
+			random_transformations = generator.generateTransformations(count, bound1, bound2, base_trans);
+
+			std::vector<glm::vec3> new_obstacles = generator.getObstacles();
+			obstacles.reserve(obstacles.size() + new_obstacles.size());
+			obstacles.insert(obstacles.end(), new_obstacles.begin(), new_obstacles.end());
+
+			objects.push_back(std::make_pair(models[model_index], random_transformations));
+		}
+
 		// Load light
-		else if (line.find("Light") != std::string::npos) {
+		else if (line.find("Light") == 0) {
 			glm::vec3 position(.0f, .0f, .0f);
 			glm::vec3 direction(.0f, .0f, .0f);
 			glm::vec3 color(1.0f, 1.0f, 1.0f);
@@ -595,11 +429,11 @@ bool Scene::load() {
 			else if (type == "flashlight") {
 				light.makeFlashlight(attenuation, angle);
 			}
-			lights.push_back(light);
+			lights->addLight(light);
 		}
 
 		// Load shader
-		else if (line.find("Shader") != std::string::npos) {
+		else if (line.find("Shader") == 0) {
 			std::map<std::string, std::string> values;
 			// Load parameters
 			std::getline(description, line);
@@ -624,7 +458,7 @@ bool Scene::load() {
 		}
 
 		// Load program
-		else if (line.find("Program") != std::string::npos) {
+		else if (line.find("Program") == 0) {
 			// Load parameters
 			std::getline(description, line);
 			std::vector<int> shader_indices;
@@ -643,14 +477,15 @@ bool Scene::load() {
 			for (int idx : shader_indices) {
 				program_shaders.push_back(shaders[idx]);
 			}
-			programs.push_back(new Program(program_shaders));
+			Program* pr = new Program(program_shaders);
+			programs.push_back(pr);
+			lights->subscribe(pr);
 		}
 		// Load renderers
-		else if (line.find("Renderer") != std::string::npos) {
+		else if (line.find("Renderer") == 0) {
 			// Load parameters
 			std::getline(description, line);
 			std::vector<int> object_indices;
-			std::vector<int> light_indices;
 			int program_index;
 			while (line.find("}") == std::string::npos) {
 				std::stringstream sstream(line);
@@ -663,37 +498,18 @@ bool Scene::load() {
 				else if (key == "program") {
 					sstream >> program_index;
 				}
-				else if (key == "lights") {
-					parseArray(line, &light_indices);
-				}
 				std::getline(description, line);
 			}
-			ObjectRenderer* renderer = new ObjectRenderer(programs[program_index]);
-			//std::vector<glm::vec3> obstacles;
-			//int count = 200;
+
+			RenderingGroup* rendering_group = new RenderingGroup(programs[program_index]);
 			for (int object_index : object_indices) {
 				auto pair = objects[object_index];
-				renderer->addObject(pair.first, pair.second);
-				// Temporary random generator
-				//trans::TransformationGenerator generator;
-				//generator.setMinDistance(8);
-				//std::vector<trans::Transformation*> random_transformations = generator.generateTransformations(count, glm::vec3(-60, 0, -60), glm::vec3(60, 0, 60), pair.second[0]);
-				//obstacles = generator.getObstacles();
-				//count += 200;
-
-				//for (trans::Transformation* t : random_transformations) {
-				//	renderer->addObject(pair.first, t);
-				//}
+				rendering_group->addAllObjectTransformations(pair.first, pair.second);
 			}
-			std::vector<Light> light_selection;
-			for (int idx : light_indices) {
-				light_selection.push_back(lights[idx]);
-			}
-			renderer->setLights(light_selection);
-			renderers.push_back(renderer);
+			rendering_groups.push_back(rendering_group);
 		}
 		// Load skybox
-		else if (line.find("Skybox") != std::string::npos) {
+		else if (line.find("Skybox") == 0) {
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
@@ -706,17 +522,19 @@ bool Scene::load() {
 					shaders.push_back(Shader("SkyboxVertexShader.glsl", GL_VERTEX_SHADER));
 					shaders.push_back(Shader("SkyboxFragmentShader.glsl", GL_FRAGMENT_SHADER));
 					Program* skybox_program = new Program(shaders);
-					GLuint skybox_ID = loadSkybox(path + value);
-					SkyboxRenderer* renderer = new SkyboxRenderer(skybox_program, skybox_ID);
+					Texture* skybox = new Texture();
+					skybox->loadSkybox(path + value);
+					skybox->setType(Texture::SKYBOX);
+					SkyboxRenderer* renderer = new SkyboxRenderer(skybox_program, skybox);
 					programs.push_back(skybox_program);
-					renderers.insert(renderers.begin(), 1, renderer);
+					other_renderers.push_back(renderer);
 				}
 				std::getline(description, line);
 			}
 		}
 
 		// Load camera
-		else if (line.find("Camera") != std::string::npos) {
+		else if (line.find("Camera") == 0) {
 			float fov = 70.f;
 			glm::vec3 position(0, 0, -0.01);
 			glm::vec3 look_at(0);
@@ -770,11 +588,11 @@ bool Scene::load() {
 		}
 
 		// Load floor
-		else if (line.find("Floor") != std::string::npos) {
-			GLuint texture = 0;
+		else if (line.find("Floor") == 0) {
+			Texture* texture = new Texture();
+			texture->setType(Texture::DIFFUSE);
 			float size = 1.0;
 			float dimension = 1;
-			std::vector<int> light_indices;
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
@@ -782,10 +600,10 @@ bool Scene::load() {
 				std::string key;
 				sstream >> key;
 				key.pop_back();
-				if (key == "texture") {
+				if (key == "diffuse_texture") {
 					std::string value;
 					sstream >> value;
-					texture = loadTexture((path + value).c_str());
+					texture->load((path + value).c_str());
 				}
 				else if (key == "size") {
 					sstream >> size;
@@ -793,25 +611,17 @@ bool Scene::load() {
 				else if (key == "dimension") {
 					sstream >> dimension;
 				}
-				else if (key == "light") {
-					std::string arr;
-					sstream >> arr;
-					parseArray(arr, &light_indices);
-				}
 				std::getline(description, line);
 			}
 			std::vector<Shader> shaders;
 			shaders.push_back(Shader("FloorVertexShader.glsl", GL_VERTEX_SHADER));
 			shaders.push_back(Shader("FloorFragmentShader.glsl", GL_FRAGMENT_SHADER));
 			Program* floor_program = new Program(shaders);
+			lights->subscribe(floor_program);
 			FloorRenderer* renderer = new FloorRenderer(floor_program, size, dimension, texture);
-			std::vector<Light> light_selection;
-			for (int idx : light_indices) {
-				light_selection.push_back(lights[idx]);
-			}
-			renderer->setLights(light_selection);
+
 			programs.push_back(floor_program);
-			renderers.insert(renderers.begin(), 1, renderer);
+			other_renderers.push_back(renderer);
 		}
 	}
 
@@ -819,8 +629,19 @@ bool Scene::load() {
 	return true;
 }
 
-std::vector<AbstractRenderer*> Scene::getRenderers() {
-	return renderers;
+std::vector<object::Object*> Scene::getObjects()
+{
+	return models;
+}
+
+std::vector<RenderingGroup*> Scene::getRenderingGroups()
+{
+	return rendering_groups;
+}
+
+std::vector<AbstractRenderer*> Scene::getRenderers()
+{
+	return other_renderers;
 }
 
 std::vector<Program*> Scene::getPrograms() {
@@ -829,6 +650,10 @@ std::vector<Program*> Scene::getPrograms() {
 
 Camera* Scene::getCamera() {
 	return camera;
+}
+
+LightCollection* Scene::getLights() {
+	return lights;
 }
 
 void Scene::moveObjects(double delta_time) {
