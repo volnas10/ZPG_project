@@ -17,13 +17,15 @@ private:
 	std::vector<MeshInstances> meshes;
 	LightCollection* lights;
 	std::vector<AbstractRenderer*> other_renderers;
-	//ShadowMapper shadow_mapper;
+	ShadowMapper* shadow_mapper;
+	bool use_shadows;
 public:
 	RenderingScheduler();
 	void addOtherRenderers(std::vector<AbstractRenderer*> renderers);
 	void addRenderingGroups(std::vector<object::Object*> objects, std::vector<RenderingGroup*> groups);
 	void setLights(LightCollection* lights);
 	void render();
+	void useShadows();
 };
 
 #endif

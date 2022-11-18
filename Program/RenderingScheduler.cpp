@@ -14,8 +14,7 @@
 RenderingScheduler::RenderingScheduler() {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
-
-	
+	use_shadows = false;
 }
 
 void RenderingScheduler::addOtherRenderers(std::vector<AbstractRenderer*> renderers) {
@@ -55,6 +54,12 @@ void RenderingScheduler::render() {
 	// So instead of preparing one mesh again andagain for each instance, we prepare it once and draw every instance in every renderer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	if (use_shadows) {
+		for (MeshInstances meshInstances : meshes) {
+			meshInstances.mesh->bind();
+			shadow_mapper->renderShadows(meshInstances.mesh);
+		}
+	}
 
 
 	for (AbstractRenderer* r : other_renderers) {
@@ -73,4 +78,9 @@ void RenderingScheduler::render() {
 		}
 	}
 
+}
+
+void RenderingScheduler::useShadows() {
+	use_shadows = true;
+	shadow_mapper = new ShadowMapper();
 }

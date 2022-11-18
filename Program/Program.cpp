@@ -61,9 +61,13 @@ void Program::updateCamera(glm::mat4 view_matrix, glm::mat4 projection_matrix) {
 	glProgramUniformMatrix4fv(program_ID, projection_view_ID, 1, GL_FALSE, &PVmat[0][0]);
 }
 
-void Program::updateLights(std::vector<Light::LightStruct> lights) {
+void Program::updateLights(std::vector<Light*> lights) {
+	std::vector<Light::LightStruct> light_structs;
+	for (Light* l : lights) {
+		light_structs.push_back(l->toStruct());
+	}
 	glBindBuffer(GL_UNIFORM_BUFFER, lights_buffer);
-	glBufferSubData(GL_UNIFORM_BUFFER, 0, lights.size() * sizeof(Light::LightStruct), &lights[0]);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, light_structs.size() * sizeof(Light::LightStruct), &lights[0]);
 	for (int i = 0; i < lights.size(); i++) {
 		glBindBufferRange(GL_UNIFORM_BUFFER, 2 + i, lights_buffer, 256 * i, sizeof(Light::LightStruct));
 	}

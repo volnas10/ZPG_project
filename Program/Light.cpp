@@ -33,7 +33,7 @@ void Light::makeFlashlight(glm::vec3 attenuation, float angle) {
 	this->light_type = FLASHLIGHT;
 }
 
-glm::mat4 Light::getProjectionMatrix() {
+glm::mat4 Light::getMatrices() {
 	// Orthographic matrix for directional light
 	if (light_type == DIRECTIONAL) {
 		glm::mat4 projection_matrix = glm::ortho(-10, 10, -10, 10, -20, 20);
@@ -79,7 +79,13 @@ Light::LightStruct Light::toStruct() {
 	return l_struc;
 }
 
-void LightCollection::addLight(Light light) {
+LightCollection::~LightCollection() {
+	for (Light* l : lights) {
+		delete l;
+	}
+}
+
+void LightCollection::addLight(Light* light) {
 	lights.push_back(light);
 }
 
@@ -88,11 +94,7 @@ void LightCollection::subscribe(LightSubscriber* subscriber) {
 }
 
 void LightCollection::notifySubscribers() {
-	std::vector<Light::LightStruct> light_structs;
-	for (Light l : lights) {
-		light_structs.push_back(l.toStruct());
-	}
 	for (LightSubscriber* sub : subscribers) {
-		sub->updateLights(light_structs);
+		sub->updateLights(lights);
 	}
 }

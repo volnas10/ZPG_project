@@ -24,7 +24,7 @@ public:
 	void makeSpotlight(glm::vec3 position, glm::vec3 direction, glm::vec3 attenuation, float angle);
 	void makeFlashlight(glm::vec3 attenuation, float angle);
 
-	glm::mat4 getProjectionMatrix();
+	glm::mat4 getMatrices();
 
 	LightStruct toStruct();
 
@@ -41,10 +41,11 @@ class LightSubscriber;
 
 class LightCollection {
 private:
-	std::vector<Light> lights;
+	std::vector<Light*> lights;
 	std::vector<LightSubscriber*> subscribers;
 public:
-	void addLight(Light light);
+	~LightCollection();
+	void addLight(Light* light);
 
 	void subscribe(LightSubscriber* subscriber);
 	void notifySubscribers();

@@ -42,6 +42,7 @@ namespace object {
 			std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices,
 			Material material, std::vector<Texture*> textures);
 		void bind();
+		void bindForShadows();
 		void bindUniforms(GLuint material_binding, GLuint diffuse_t, GLuint normal_t, GLuint opacity_t, GLuint has_textures);
 
 		size_t size();

@@ -44,6 +44,11 @@ ShadowMapper::ShadowMapper() {
 
 }
 
-void ShadowMapper::renderShadows() {
+void ShadowMapper::renderShadows(object::Mesh* mesh) {
     glm::mat4 projection_matrix;
+
+}
+
+void ShadowMapper::updateLights(std::vector<Light*> lights) {
+
 }

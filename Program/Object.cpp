@@ -87,6 +87,12 @@ namespace object {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
 	}
 
+	void Mesh::bindForShadows() {
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	}
+
 	void Mesh::bindUniforms(GLuint material_binding, GLuint diffuse_t, GLuint normal_t, GLuint opacity_t, GLuint has_textures) {
 		glBindBufferBase(GL_UNIFORM_BUFFER, material_binding, material_buffer);
 		glm::vec3 enabled(0.0);

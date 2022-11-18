@@ -14,6 +14,6 @@ public:
 
 class LightSubscriber {
 public:
-	virtual void updateLights(std::vector<Light::LightStruct> lights) = 0;
+	virtual void updateLights(std::vector<Light*> lights) = 0;
 };
 #endif

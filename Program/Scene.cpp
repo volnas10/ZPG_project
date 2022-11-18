@@ -416,18 +416,18 @@ bool Scene::load() {
 				std::getline(description, line);
 			}
 
-			Light light(color);
+			Light* light = new Light(color);
 			if (type == "point") {
-				light.makePoint(position, attenuation);
+				light->makePoint(position, attenuation);
 			}
 			else if (type == "directional") {
-				light.makeDirectional(direction);
+				light->makeDirectional(direction);
 			}
 			else if (type == "spotlight") {
-				light.makeSpotlight(position, direction, attenuation, angle);
+				light->makeSpotlight(position, direction, attenuation, angle);
 			}
 			else if (type == "flashlight") {
-				light.makeFlashlight(attenuation, angle);
+				light->makeFlashlight(attenuation, angle);
 			}
 			lights->addLight(light);
 		}
