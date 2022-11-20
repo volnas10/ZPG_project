@@ -71,12 +71,6 @@
     <None Include="shaders\SkyboxVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shaders\FragmentShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\VertexShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
     <None Include="shaders\SunFragmentShader.glsl">
       <Filter>shaders</Filter>
     </None>
@@ -92,12 +86,6 @@
     <None Include="shaders\FragmentShader_simple.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shaders\MultiLightFragmentShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\MultiLightVertexShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
     <None Include="shaders\ShadowFragmentShader.glsl">
       <Filter>shaders</Filter>
     </None>
@@ -108,6 +96,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\NewVertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\DepthMapFragmentShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\DepthMapVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

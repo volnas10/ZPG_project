@@ -28,7 +28,7 @@ Window::Window(GLFWwindow* window) {
 
     last_time = -1;
 
-    scene = new Scene("plane");
+    scene = new Scene("shadows");
     scene->load();
     
     camera = scene->getCamera();
@@ -51,9 +51,11 @@ Window::~Window() {
 void Window::start() {
 
     RenderingScheduler rendering_scheduler;
-    rendering_scheduler.setLights(scene->getLights());
+    scene->getLights()->subscribe(&rendering_scheduler);
     rendering_scheduler.addRenderingGroups(scene->getObjects(), scene->getRenderingGroups());
     rendering_scheduler.addOtherRenderers(scene->getRenderers());
+    rendering_scheduler.useShadows();
+    camera->subscribe(scene->getLights());
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
 
@@ -61,7 +63,7 @@ void Window::start() {
         handleInput();
 
         // Render everything
-        rendering_scheduler.render();
+        rendering_scheduler.render(window_size.x, window_size.y);
         frame_count++;
 
         glfwSwapBuffers(window);
@@ -76,15 +78,10 @@ void Window::windowResizeCallback(GLFWwindow* window, int width, int height) {
 }
 
 void Window::windowResized(int width, int height) {
-    std::cout << width << " " << height << std::endl;
-
-    glViewport(0, 0, width, height);
     float aspect_ratio = (float) width / height;
 
     window_size = glm::vec2(width, height);
     camera->changeAspectRatio(aspect_ratio);
-    window_size.x = width;
-    window_size.y = height;
 }
 
 void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {

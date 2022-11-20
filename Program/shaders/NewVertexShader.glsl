@@ -8,6 +8,7 @@ layout(location = 2) in vec2 VertexUV;
 // cs - cameraspace
 // ms - modelspace
 // ts - tangentspace
+// ls - lightspace
 
 out vec2 uv;
 out vec3 vertexPosition_ws;
@@ -31,6 +32,7 @@ layout(std140, binding=2) uniform Light {
 	vec4 position;
 	vec4 direction;
 	vec4 attenuation; // constant, linear, quadratic, padding
+	mat4 lightspace_matrix;
 	float angle_precalculated;
 	uint type;
 } Lights[10];

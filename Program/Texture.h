@@ -16,6 +16,8 @@ public:
 	bool load(const char* filename);
 	bool loadFromMemory(aiTexture* t);
 	bool loadSkybox(std::string path);
+
+	static GLuint reserveUnit();
 private:
 	static int unit_counter;
 	Type texture_type;

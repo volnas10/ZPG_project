@@ -16,6 +16,8 @@ uniform sampler2D NormalTextureSampler;
 uniform sampler2D OpacityTextureSampler;
 uniform vec3 HasTextures;
 
+uniform sampler2DArrayShadow DepthMaps;
+
 layout(std140, binding=1) uniform Material {
 	vec4 diffuse_color;
 	vec4 specular_color;
@@ -34,6 +36,7 @@ layout(std140, binding=2) uniform Light {
 	vec4 position;
 	vec4 direction;
 	vec4 attenuation; // constant, linear, quadratic, padding
+	mat4 lightspace_matrix;
 	float angle_precalculated;
 	uint type;
 } Lights[10];
@@ -114,6 +117,8 @@ vec3 flashlightCalculation(in mat3 colorParts, in int lightIndex, in vec3 normal
 	return color;
 }
 
+const vec2 shadowMultisample[5] = {vec2(0, 1), vec2(-1, 0), vec2(0, 0), vec2(1, 0), vec2(0, -1)};
+
 void main(){
 
 	// If material has texture, use it
@@ -149,24 +154,42 @@ void main(){
 	vec3 E = normalize(eyeDirection_cs);
 	vec3 finalColor = ambientColor;
 	mat3 colorParts = mat3(ambientColor, diffuseColor.rgb, specularColor);
+
 	for (int i = 0; i < LightCount; i++) {
+
 		uint type = Lights[i].type;
 		vec3 L = normalize(lightDirections_cs[i]);
+
+		// Calculating coordinates in depth map
+		vec4 vertexPosition_ls = Lights[i].lightspace_matrix * vec4(vertexPosition_ws, 1.0);
+		vec3 fragmentPos = vertexPosition_ls.xyz / vertexPosition_ls.w;
+		vec3 projCoords = fragmentPos * 0.5 + 0.5;
+		projCoords.z -= 0.005;
+
+		float shadow = 0.0;
+		vec2 texelSize = 1.0 / textureSize(DepthMaps, 0).xy;
+
+		for(int j = 0; j < 5; j++)
+		{
+			shadow += texture(DepthMaps, vec4(projCoords.xy + shadowMultisample[j] * texelSize, i, projCoords.z)).r;
+		}
+		shadow /= 5.0;
+
 		// Point light
 		if (type == uint(0)) {
-			finalColor += pointLightCalculation(colorParts, i, N, L, E);
+			finalColor += (pointLightCalculation(colorParts, i, N, L, E) * shadow);
 		}
 		// Directional light
 		else if (type == uint(1)) {
-			finalColor += directionalLightCalculation(colorParts, i, N, L, E);
+			finalColor += (directionalLightCalculation(colorParts, i, N, L, E) * shadow);
 		}
 		else if (type == uint(2)) {
 			// L is direction from vertex to light and L2 direection of light
 			vec3 L2 = normalize(spotlightDirections_cs[i]);
-			finalColor += spotlightCalculation(colorParts, i, N, L, L2, E);
+			finalColor += (spotlightCalculation(colorParts, i, N, L, L2, E) * shadow);
 		}
 		else if (type == uint(3)) {
-			finalColor += flashlightCalculation(colorParts, i, N, E);
+			finalColor += (flashlightCalculation(colorParts, i, N, E) * shadow);
 		}
 	}
 

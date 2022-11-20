@@ -6,14 +6,22 @@
 #include "Object.h"
 #include "Observers.h"
 
-class ShadowMapper : public LightSubscriber{
+class ShadowMapper {
 private:
-	GLuint depth_map_FBO;
+	GLuint depth_map, depth_map_FBO;
+	GLuint texture_unit;
 	Program* shadow_program;
+
+
+	GLuint pvmatrix_ID;
 public:
 	ShadowMapper();
-	void renderShadows(object::Mesh* mesh);
-	void updateLights(std::vector<Light*> lights);
+	void prepare(int* transformation_idx);
+	void useLight(Light::LightStruct light, unsigned int index);
+	void renderShadows(object::Mesh* mesh, size_t count);
+	GLuint getUnit();
+
+	GLuint getDepthMap();
 };
 
 #endif

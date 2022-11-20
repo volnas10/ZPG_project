@@ -162,10 +162,12 @@ Renderer::Renderer(Program* program) {
     diffuse_ID = program->getUniformLocation("DiffuseTextureSampler");
     normal_ID = program->getUniformLocation("NormalTextureSampler");
     opacity_ID = program->getUniformLocation("OpacityTextureSampler");
+    depth_map_ID = program->getUniformLocation("DepthMaps");
 }
 
-void Renderer::prepare(int* transformations_idx) {
+void Renderer::prepare(int* transformations_idx, GLuint depth_map_ID) {
     program->use();
+    glUniform1i(this->depth_map_ID, depth_map_ID);
     // Block index of transformations
     *transformations_idx = 0;
 }
@@ -198,4 +200,40 @@ std::vector<trans::Transformation*> RenderingGroup::getTransformations(object::O
 
 Renderer* RenderingGroup::getRenderer() {
     return renderer;
+}
+
+DepthMapRenderer::DepthMapRenderer() {
+    std::vector<Shader> shaders;
+    shaders.push_back(Shader("DepthMapVertexShader.glsl", GL_VERTEX_SHADER));
+    shaders.push_back(Shader("DepthMapFragmentShader.glsl", GL_FRAGMENT_SHADER));
+    program = new Program(shaders);
+
+    sampler_ID = program->getUniformLocation("DepthMap");
+
+    float quad_vertices[] = {
+        // positions        // texture Coords
+        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+         1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+         1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+    };
+
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
+}
+
+void DepthMapRenderer::render(GLuint depth_map_ID) {
+    program->use();
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glUniform1i(sampler_ID, depth_map_ID);
+
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

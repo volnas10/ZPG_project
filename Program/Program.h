@@ -26,7 +26,7 @@ public:
 	void stopUsing();
 
 	void updateCamera(glm::mat4 view_matrix, glm::mat4 projection_matrix);
-	void updateLights(std::vector<Light*> lights);
+	void updateLights(std::vector<Light::LightStruct> lights);
 
 	GLuint getUniformLocation(std::string name);
 	GLuint getUniformBlockLocation(std::string name, int pos);

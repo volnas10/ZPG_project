@@ -15,11 +15,13 @@ private:
 	glm::mat4 view_matrix;
 	glm::mat4 projection_matrix;
 
-	std::vector<CameraSubscriber*> subscribers;
+	std::vector<CameraSubscriber*> matrix_subscribers;
+	std::vector<CameraPositionSubscriber*> position_subscribers;
 public:
 	Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle, float aspect_ratio);
 
 	void subscribe(CameraSubscriber* subscriber);
+	void subscribe(CameraPositionSubscriber* subscriber);
 	void notifySubscribers();
 
 	void move(glm::vec3 dir, float h_angle, float v_angle);

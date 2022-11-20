@@ -229,3 +229,8 @@ bool Texture::loadSkybox(std::string path) {
 
 	return true;
 }
+
+GLuint Texture::reserveUnit() {
+	unit_counter++;
+	return unit_counter - 1;
+}

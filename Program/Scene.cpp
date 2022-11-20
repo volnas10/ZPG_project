@@ -382,6 +382,7 @@ bool Scene::load() {
 			glm::vec3 direction(.0f, .0f, .0f);
 			glm::vec3 color(1.0f, 1.0f, 1.0f);
 			glm::vec3 attenuation(1.0f, 1.0f, 1.0f);
+			trans::Transformation* transformation = nullptr;
 			float angle = 30.0f;
 			std::string type = "point";
 
@@ -413,6 +414,11 @@ bool Scene::load() {
 						attenuation.x = 1;
 					}
 				}
+				else if (key == "transformation") {
+					int index;
+					sstream >> index;
+					transformation = transformations[index];
+				}
 				std::getline(description, line);
 			}
 
@@ -428,6 +434,9 @@ bool Scene::load() {
 			}
 			else if (type == "flashlight") {
 				light->makeFlashlight(attenuation, angle);
+			}
+			if (transformation != nullptr) {
+				light->setTransformation(transformation);
 			}
 			lights->addLight(light);
 		}

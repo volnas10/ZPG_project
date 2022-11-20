@@ -13,10 +13,10 @@
 class Renderer {
 private:
 	Program* program;
-	GLuint diffuse_ID, normal_ID, opacity_ID, has_textures_ID;
+	GLuint diffuse_ID, normal_ID, opacity_ID, depth_map_ID, has_textures_ID;
 public:
 	Renderer(Program* program);
-	void prepare(int* transformations_idx);
+	void prepare(int* transformations_idx, GLuint depth_map_ID);
 	void render(object::Mesh* mesh, size_t count);
 };
 
@@ -60,6 +60,17 @@ private:
 public:
 	FloorRenderer(Program* program, float size, int dimension, Texture* texture);
 	void render();
+};
+
+// Used for debugging
+class DepthMapRenderer {
+private:
+	Program* program;
+	GLuint sampler_ID;
+	GLuint VBO;
+public:
+	DepthMapRenderer();
+	void render(GLuint depth_map_ID);
 };
 
 #endif

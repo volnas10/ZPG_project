@@ -82,8 +82,6 @@ namespace object {
 		glBindBuffer(GL_ARRAY_BUFFER, bitangent_buffer);
 		glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-		// Add textrue manager later
-
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
 	}
 
@@ -91,6 +89,8 @@ namespace object {
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
 	}
 
 	void Mesh::bindUniforms(GLuint material_binding, GLuint diffuse_t, GLuint normal_t, GLuint opacity_t, GLuint has_textures) {
@@ -110,7 +110,7 @@ namespace object {
 				enabled.z = 1;
 			}
 		}
-		glUniform3fv(has_textures, 1, glm::value_ptr(enabled));
+		glUniform3fv(has_textures, 1, &enabled[0]);
 	}
 
 	size_t Mesh::size() {

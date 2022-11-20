@@ -10,6 +10,7 @@
 #define PI 3.14159
 
 class TransformationBuffer;
+class Light;
 
 namespace trans {
 
@@ -63,6 +64,7 @@ namespace trans {
 
 		// Vector of transformation buffers containing this transormation
 		std::vector<std::pair<TransformationBuffer*, size_t>> dependent_buffers;
+		std::vector<Light*> dependent_lights;
 
 		// Vector of transformations that depend on this transformation
 		std::vector<TransformationComponent*> transformations;
@@ -76,6 +78,7 @@ namespace trans {
 		void operator<<(Transformation& b);
 		void addParent(Transformation* t);
 		void addDependency(size_t index, TransformationBuffer* buffer);
+		void addDependency(Light* light);
 
 		Position* translate(float x, float y, float z);
 		Rotation* rotate(float x, float y, float z);

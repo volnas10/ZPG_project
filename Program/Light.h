@@ -4,18 +4,24 @@
 
 #include <glm/glm.hpp>
 #include <vector>
+#include <set>
+
+#include "Util.h"
+
+class LightCollection;
 
 class Light {
 public:
 	enum Type{POINT, DIRECTIONAL, SPOTLIGHT, FLASHLIGHT};
 	struct LightStruct {
-		glm::vec4 color; // vec3 color + float power
+		glm::vec4 color;
 		glm::vec4 position;
 		glm::vec4 direction;
-		glm::vec4 attenuation; // constant, linear, quadratic
+		glm::vec4 attenuation; // constant, linear, quadratic, -
+		glm::mat4 lightspace_matrix;
 		float angle_precalculated; // Little optimization
 		unsigned int type;
-		int padding[46];
+		int padding[30];
 	};
 	
 	Light(glm::vec3 color);
@@ -23,8 +29,13 @@ public:
 	void makeDirectional(glm::vec3 direction);
 	void makeSpotlight(glm::vec3 position, glm::vec3 direction, glm::vec3 attenuation, float angle);
 	void makeFlashlight(glm::vec3 attenuation, float angle);
+	void setTransformation(trans::Transformation* transformation);
 
-	glm::mat4 getMatrices();
+	void setCollection(LightCollection* light_col, size_t pos);
+	void update();
+	void calculateMatrix();
+	glm::mat4 getMatrix();
+	Type getType();
 
 	LightStruct toStruct();
 
@@ -35,20 +46,33 @@ private:
 	glm::vec3 direction;
 	glm::vec3 attenuation;
 	float angle;
+
+	std::pair<LightCollection*, size_t> light_collection;
+	trans::Transformation* transformation;
+	glm::mat4 lightspace_matrix;
 };
+
+#include "Observers.h"
 
 class LightSubscriber;
 
-class LightCollection {
+class LightCollection : public CameraPositionSubscriber {
 private:
 	std::vector<Light*> lights;
+	std::vector<Light::LightStruct> light_structs;
+	std::set<int> changed_lights;
 	std::vector<LightSubscriber*> subscribers;
+
+	glm::vec3 light_offset;
 public:
 	~LightCollection();
 	void addLight(Light* light);
+	void lightChanged(size_t pos);
 
 	void subscribe(LightSubscriber* subscriber);
 	void notifySubscribers();
+
+	void updateCameraPosition(glm::vec3 position);
 
 };
 

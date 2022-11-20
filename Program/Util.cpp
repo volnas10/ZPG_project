@@ -3,6 +3,8 @@
 
 #include "TransformationBuffer.h"
 
+#include "Light.h"
+
 #include "Util.h"
 
 namespace trans {
@@ -77,6 +79,9 @@ namespace trans {
 		for (auto pair : dependent_buffers) {
 			pair.first->updateTransformation(pair.second, getTransformation());
 		}
+		for (Light* l : dependent_lights) {
+			l->update();
+		}
 	}
 
 	void Transformation::operator<<(Transformation& b) {
@@ -91,6 +96,10 @@ namespace trans {
 
 	void Transformation::addDependency(size_t index, TransformationBuffer* buffer) {
 		dependent_buffers.push_back(std::make_pair(buffer, index));
+	}
+
+	void Transformation::addDependency(Light* light) {
+		dependent_lights.push_back(light);
 	}
 
 	Position* Transformation::translate(float x, float y, float z) {

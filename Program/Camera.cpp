@@ -20,13 +20,21 @@ Camera::Camera(glm::vec3 position, float fov, float horizontal_angle, float vert
 }
 
 void Camera::subscribe(CameraSubscriber* subscriber) {
-	subscribers.push_back(subscriber);
+	matrix_subscribers.push_back(subscriber);
 	subscriber->updateCamera(view_matrix, projection_matrix);
 }
 
+void Camera::subscribe(CameraPositionSubscriber* subscriber) {
+	position_subscribers.push_back(subscriber);
+	subscriber->updateCameraPosition(position);
+}
+
 void Camera::notifySubscribers() {
-	for (CameraSubscriber* sub : subscribers) {
+	for (CameraSubscriber* sub : matrix_subscribers) {
 		sub->updateCamera(view_matrix, projection_matrix);
+	}
+	for (CameraPositionSubscriber* sub : position_subscribers) {
+		sub->updateCameraPosition(position);
 	}
 }
 
