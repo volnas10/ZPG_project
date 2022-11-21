@@ -15,9 +15,9 @@ out vec3 vertexPosition_ws;
 out vec3 vertexPosition_cs;
 out vec3 normal_cs;
 out vec3 eyeDirection_cs;
-out vec3 lightDirections_cs[10];
-out vec3 spotlightDirections_cs[10];
-out float lightDistances[10];
+out vec3 lightDirections_cs[6];
+out vec3 spotlightDirections_cs[6];
+out float lightDistances[6];
 
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionViewMatrix;
@@ -35,7 +35,7 @@ layout(std140, binding=2) uniform Light {
 	mat4 lightspace_matrix;
 	float angle_precalculated;
 	uint type;
-} Lights[10];
+} Lights[6];
 
 void main(){
 

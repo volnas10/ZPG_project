@@ -1,5 +1,5 @@
 Transformation {
-	scale: 5.0 5.0 5.0
+	scale: 10.0 10.0 10.0
 }
 Transformation {
 	position: 4.0 1.0 0.0
@@ -56,4 +56,7 @@ Camera {
 	position: 0.0 1.0 -1.0
 	lookat: 0.0 0.0 0.0
 	fov: 70.0
+}
+Skybox {
+	name: skybox.png
 }

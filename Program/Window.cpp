@@ -28,7 +28,7 @@ Window::Window(GLFWwindow* window) {
 
     last_time = -1;
 
-    scene = new Scene("shadows");
+    scene = new Scene("forest");
     scene->load();
     
     camera = scene->getCamera();
@@ -54,7 +54,7 @@ void Window::start() {
     scene->getLights()->subscribe(&rendering_scheduler);
     rendering_scheduler.addRenderingGroups(scene->getObjects(), scene->getRenderingGroups());
     rendering_scheduler.addOtherRenderers(scene->getRenderers());
-    rendering_scheduler.useShadows();
+    //rendering_scheduler.useShadows();
     camera->subscribe(scene->getLights());
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {

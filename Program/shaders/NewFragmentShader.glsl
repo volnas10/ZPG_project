@@ -5,9 +5,9 @@ in vec3 vertexPosition_ws;
 in vec3 vertexPosition_cs;
 in vec3 normal_cs;
 in vec3 eyeDirection_cs;
-in vec3 lightDirections_cs[10];
-in vec3 spotlightDirections_cs[10];
-in float lightDistances[10];
+in vec3 lightDirections_cs[6];
+in vec3 spotlightDirections_cs[6];
+in float lightDistances[6];
 
 out vec4 color;
 
@@ -17,6 +17,7 @@ uniform sampler2D OpacityTextureSampler;
 uniform vec3 HasTextures;
 
 uniform sampler2DArrayShadow DepthMaps;
+uniform bool ShadowsOn;
 
 layout(std140, binding=1) uniform Material {
 	vec4 diffuse_color;
@@ -39,7 +40,7 @@ layout(std140, binding=2) uniform Light {
 	mat4 lightspace_matrix;
 	float angle_precalculated;
 	uint type;
-} Lights[10];
+} Lights[6];
 
 vec3 pointLightCalculation(in mat3 colorParts, in int lightIndex, in vec3 normal, in vec3 lDir, in vec3 eyeDir) {
 
@@ -120,7 +121,6 @@ vec3 flashlightCalculation(in mat3 colorParts, in int lightIndex, in vec3 normal
 const vec2 shadowMultisample[5] = {vec2(0, 1), vec2(-1, 0), vec2(0, 0), vec2(1, 0), vec2(0, -1)};
 
 void main(){
-
 	// If material has texture, use it
 	vec4 diffuseColor;
 	vec3 ambientColor;
@@ -167,13 +167,19 @@ void main(){
 		projCoords.z -= 0.005;
 
 		float shadow = 0.0;
-		vec2 texelSize = 1.0 / textureSize(DepthMaps, 0).xy;
+		if (ShadowsOn) {
+			vec2 texelSize = 1.0 / textureSize(DepthMaps, 0).xy;
 
-		for(int j = 0; j < 5; j++)
-		{
-			shadow += texture(DepthMaps, vec4(projCoords.xy + shadowMultisample[j] * texelSize, i, projCoords.z)).r;
+			for(int j = 0; j < 5; j++)
+			{
+				shadow += texture(DepthMaps, vec4(projCoords.xy + shadowMultisample[j] * texelSize, i, projCoords.z)).r;
+			}
+			shadow /= 5.0;
 		}
-		shadow /= 5.0;
+		else {
+			shadow = 1.0;
+		}
+
 
 		// Point light
 		if (type == uint(0)) {

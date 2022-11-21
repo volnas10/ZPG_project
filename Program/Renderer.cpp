@@ -66,7 +66,9 @@ SkyboxRenderer::SkyboxRenderer(Program* program, Texture* texture) : AbstractRen
 	glBindBuffer(GL_ARRAY_BUFFER, cube_VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    program->use();
     glUniform1i(texture_samplers[0], texture->getUnit());
+    program->stopUsing();
 }
 
 void SkyboxRenderer::render() {
@@ -163,11 +165,18 @@ Renderer::Renderer(Program* program) {
     normal_ID = program->getUniformLocation("NormalTextureSampler");
     opacity_ID = program->getUniformLocation("OpacityTextureSampler");
     depth_map_ID = program->getUniformLocation("DepthMaps");
+    use_shadows_ID = program->getUniformLocation("ShadowsOn");
 }
 
-void Renderer::prepare(int* transformations_idx, GLuint depth_map_ID) {
+void Renderer::prepare(int* transformations_idx, GLint depth_map_ID) {
     program->use();
-    glUniform1i(this->depth_map_ID, depth_map_ID);
+    if (depth_map_ID >= 0) {
+        glUniform1i(this->depth_map_ID, depth_map_ID);
+        glUniform1i(this->use_shadows_ID, GL_TRUE);
+    }
+    else {
+        glUniform1i(this->use_shadows_ID, GL_FALSE);
+    }
     // Block index of transformations
     *transformations_idx = 0;
 }

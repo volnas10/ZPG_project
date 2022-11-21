@@ -536,7 +536,7 @@ bool Scene::load() {
 					skybox->setType(Texture::SKYBOX);
 					SkyboxRenderer* renderer = new SkyboxRenderer(skybox_program, skybox);
 					programs.push_back(skybox_program);
-					other_renderers.push_back(renderer);
+					other_renderers.insert(other_renderers.begin(), renderer);
 				}
 				std::getline(description, line);
 			}

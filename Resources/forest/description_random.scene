@@ -3,7 +3,6 @@ Transformation {
 }
 Transformation {
 	scale: 0.04 0.04 0.04
-	position: 5.0 0.0 0.0
 }
 Model {
 	name: bush.fbx
@@ -11,13 +10,21 @@ Model {
 Model {
 	name: urban_tree.fbx
 }
-Object {
-	model: 0
-	transformations: [0]
-}
-Object {
+RandomizeObject {
 	model: 1
-	transformations: [1]
+	count: 50
+	base: 0
+	distance: 8
+	obstacles: false
+	bounds: -80 0 -80 80 0 80
+}
+RandomizeObject {
+	model: 0
+	count: 50
+	base: 1
+	distance: 8
+	obstacles: false
+	bounds: -80 0 -80 80 0 80
 }
 Shader {
 	type: vertex
@@ -30,7 +37,7 @@ Shader {
 Light {
 	type: directional
 	color: 1.0 1.0 1.0
-	direction: 1.0 -0.5 1.0
+	direction: 1.0 -1.0 1.0
 }
 Program {
 	shaders: [0, 1]
@@ -47,9 +54,9 @@ Floor {
 	dimension: 80
 }
 Camera {
-	position: 0 5 0
+	position: 0 60 0
 	lookat: 2 0 2
-	fov: 70
+	fov: 90
 }
 Skybox {
 	name: skybox.png

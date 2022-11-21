@@ -13,10 +13,10 @@
 class Renderer {
 private:
 	Program* program;
-	GLuint diffuse_ID, normal_ID, opacity_ID, depth_map_ID, has_textures_ID;
+	GLuint diffuse_ID, normal_ID, opacity_ID, depth_map_ID, has_textures_ID, use_shadows_ID;
 public:
 	Renderer(Program* program);
-	void prepare(int* transformations_idx, GLuint depth_map_ID);
+	void prepare(int* transformations_idx, GLint depth_map_ID);
 	void render(object::Mesh* mesh, size_t count);
 };
 

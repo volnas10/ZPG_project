@@ -88,7 +88,12 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 		for (auto pair : meshInstances.instances) {
 			// Use renderer
 			int transformations_idx;
-			pair.first->prepare(&transformations_idx, shadow_mapper->getUnit());
+			if (use_shadows) {
+				pair.first->prepare(&transformations_idx, shadow_mapper->getUnit());
+			}
+			else {
+				pair.first->prepare(&transformations_idx, -1);
+			}
 			pair.second->bind(transformations_idx);
 
 			// Draw the mesh with every transformation

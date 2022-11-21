@@ -23,6 +23,8 @@ private:
 	Type texture_type;
 	GLuint texture_ID;
 	GLuint texture_unit;
+
+	std::string texture_name;
 };
 
 #endif TEXTURE_H

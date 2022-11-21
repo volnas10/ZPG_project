@@ -22,6 +22,7 @@ GLuint Texture::getUnit() {
 }
 
 bool Texture::load(const char* filename) {
+	texture_name = std::string(filename);
 	FREE_IMAGE_FORMAT format = FIF_UNKNOWN;
 	FIBITMAP* dib(0);
 	unsigned char* data(0);
