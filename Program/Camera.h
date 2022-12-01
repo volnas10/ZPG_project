@@ -4,7 +4,7 @@
 
 #include "Observers.h"
 
-class Camera {
+class Camera : public WindowSizeSubscriber {
 private:
 	glm::vec3 position;
 	float fov;
@@ -16,17 +16,17 @@ private:
 	glm::mat4 projection_matrix;
 
 	std::vector<CameraSubscriber*> matrix_subscribers;
-	std::vector<CameraPositionSubscriber*> position_subscribers;
 public:
 	Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle, float aspect_ratio);
 
 	void subscribe(CameraSubscriber* subscriber);
-	void subscribe(CameraPositionSubscriber* subscriber);
 	void notifySubscribers();
 
 	void move(glm::vec3 dir, float h_angle, float v_angle);
 	void changeFov(float value);
-	void changeAspectRatio(float aspect_ratio);
+	void updateSize(int width, int height);
+
+	glm::vec3 transformToWorldspace(glm::vec3 pos, glm::vec4 viewport);
 
 	glm::mat4 getView();
 	glm::mat4 getProjection();

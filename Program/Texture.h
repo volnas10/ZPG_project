@@ -2,6 +2,8 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
+#define GLEW_STATIC
+#include <GL/glew.h>
 #include <assimp/texture.h>
 
 class Texture

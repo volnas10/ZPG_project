@@ -56,14 +56,14 @@ private:
 
 class LightSubscriber;
 
-class LightCollection : public CameraPositionSubscriber {
+class LightCollection : public CameraSubscriber {
 private:
 	std::vector<Light*> lights;
 	std::vector<Light::LightStruct> light_structs;
 	std::set<int> changed_lights;
 	std::vector<LightSubscriber*> subscribers;
 
-	glm::vec3 light_offset;
+	glm::vec3 camera_position;
 public:
 	~LightCollection();
 	void addLight(Light* light);
@@ -72,7 +72,7 @@ public:
 	void subscribe(LightSubscriber* subscriber);
 	void notifySubscribers();
 
-	void updateCameraPosition(glm::vec3 position);
+	void updateCamera(glm::mat4 view_matrix, glm::mat4 projection_matrix);
 
 };
 

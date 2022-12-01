@@ -15,7 +15,7 @@ private:
 	std::vector<AbstractRenderer*> other_renderers;
 	std::vector<Program*> programs;
 	std::vector<object::Object*> models;
-	std::vector<std::pair<object::Object*, std::vector<trans::Transformation*>>> objects;
+	std::vector<std::pair<object::Object*, std::pair<trans::Transformation*, std::vector<trans::Transformation*>>>> objects;
 	std::vector<trans::Transformation*> transformations;
 	trans::TransformationController transformation_controller;
 	LightCollection* lights;

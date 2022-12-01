@@ -105,7 +105,7 @@ namespace trans {
 		void setMinDistance(float distance);
 		void addObstacles(std::vector<glm::vec3> obstacles);
 		std::vector<glm::vec3> getObstacles();
-		std::vector<Transformation*> generateTransformations(int count, glm::vec3 bound1, glm::vec3 bound2, Transformation* previous);
+		std::vector<Transformation*> generateTransformations(int count, glm::vec3 bound1, glm::vec3 bound2);
 	};
 }
 

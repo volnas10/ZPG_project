@@ -16,11 +16,14 @@ Window::Window(GLFWwindow* window) {
 	this->window = window;
     this->cursor_locked = true;
     this->frame_count = 0;
+    this->place_object = false;
+    this->select_object = false;
     // Set callbacks
 	glfwSetWindowUserPointer(window, reinterpret_cast<void*>(this));
     glfwSetScrollCallback(window, scrollCallback);
 	glfwSetWindowSizeCallback(window, windowResizeCallback);
     glfwSetKeyCallback(window, keyCallback);
+    glfwSetMouseButtonCallback(window, mouseCallback);
 
     int width, height;
     glfwGetWindowSize(window, &width, &height);
@@ -35,9 +38,7 @@ Window::Window(GLFWwindow* window) {
     if (camera == nullptr) {
         camera = new Camera(glm::vec3(0), 70, 0, 0, (float)width / height);
     }
-    else {
-        camera->changeAspectRatio((float)width / height);
-    }
+    subscribe(camera);
 
     for (Program* program : scene->getPrograms()) {
         camera->subscribe(program);
@@ -53,7 +54,14 @@ void Window::start() {
     RenderingScheduler rendering_scheduler;
     scene->getLights()->subscribe(&rendering_scheduler);
     rendering_scheduler.addRenderingGroups(scene->getObjects(), scene->getRenderingGroups());
-    rendering_scheduler.addOtherRenderers(scene->getRenderers());
+    for (AbstractRenderer* r : scene->getRenderers()) {
+        rendering_scheduler.addPreRenderer(r);
+    }
+
+    CrosshairRenderer* crosshair_renderer = new CrosshairRenderer();
+    subscribe(crosshair_renderer);
+    rendering_scheduler.addPostRenderer(crosshair_renderer);
+
     //rendering_scheduler.useShadows();
     camera->subscribe(scene->getLights());
 
@@ -66,10 +74,34 @@ void Window::start() {
         rendering_scheduler.render(window_size.x, window_size.y);
         frame_count++;
 
+        // Place or select object
+        if (place_object) {
+            // Get pixel position in screenspace
+            float depth = rendering_scheduler.depthAtPos(window_size.x / 2, window_size.y / 2);
+            glm::vec3 pixel_screenspace = glm::vec3(window_size.x / 2, window_size.y / 2, depth);
+
+            // Let camera transform the pixel to worldspace
+            glm::vec3 pixel_worldspace = camera->transformToWorldspace(pixel_screenspace, glm::vec4(0, 0, window_size.x, window_size.y));
+            trans::Transformation* transformation = new trans::Transformation();
+            transformation->translate(pixel_worldspace.x, pixel_worldspace.y, pixel_worldspace.z);
+            rendering_scheduler.addObjectAtRuntime(transformation);
+            place_object = false;
+        }
+
+        if (select_object) {
+            rendering_scheduler.selectObject(window_size.x / 2, window_size.x / 2);
+            select_object = false;
+        }
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     std::cout << "Average framerate: " << frame_count / total_time << " FPS" << std::endl;
+}
+
+void Window::subscribe(WindowSizeSubscriber* subscriber) {
+    subscribers.push_back(subscriber);
+    subscriber->updateSize(window_size.x, window_size.y);
 }
 
 void Window::windowResizeCallback(GLFWwindow* window, int width, int height) {
@@ -78,10 +110,10 @@ void Window::windowResizeCallback(GLFWwindow* window, int width, int height) {
 }
 
 void Window::windowResized(int width, int height) {
-    float aspect_ratio = (float) width / height;
-
     window_size = glm::vec2(width, height);
-    camera->changeAspectRatio(aspect_ratio);
+    for (WindowSizeSubscriber* sub : subscribers) {
+        sub->updateSize(width, height);
+    }
 }
 
 void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -111,6 +143,22 @@ void Window::keyPressed(int key, int scancode, int action, int mods) {
             }
             cursor_locked = !cursor_locked;
         }
+    }
+}
+
+void Window::mouseCallback(GLFWwindow* window, int button, int action, int mods) {
+    Window* actual_window = (Window*)glfwGetWindowUserPointer(window);
+    if (action == GLFW_PRESS) {
+        actual_window->mouseClick(button);
+    }
+}
+
+void Window::mouseClick(int button) {
+    if (button == GLFW_MOUSE_BUTTON_1) {
+        select_object = true;
+    }
+    else if (button == GLFW_MOUSE_BUTTON_2) {
+        place_object = true;
     }
 }
 

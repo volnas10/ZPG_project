@@ -4,14 +4,14 @@
 
 #include <glm/glm.hpp>
 
+class WindowSizeSubscriber {
+public:
+	virtual void updateSize(int width, int height) = 0;
+};
+
 class CameraSubscriber {
 public:
 	virtual void updateCamera(glm::mat4 view_matrix, glm::mat4 projection_matrix) = 0;
-};
-
-class CameraPositionSubscriber {
-public:
-	virtual void updateCameraPosition(glm::vec3 position) = 0;
 };
 
 #include "Light.h"

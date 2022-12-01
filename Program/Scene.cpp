@@ -18,6 +18,7 @@
 #include "Program.h"
 #include "Light.h"
 #include "Texture.h"
+#include "FloorGenerator.h"
 
 #include "Scene.h"
 
@@ -174,6 +175,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 
 Scene::Scene(std::string name) {
 	this->name = name;
+	lights = new LightCollection();
 }
 
 Scene::~Scene() {
@@ -281,6 +283,7 @@ bool Scene::load() {
 					}
 
 					object::Object* obj = parseObject(scene, aiString(model_path));
+					obj->name = name;
 					models.push_back(obj);
 				}
 				std::getline(description, line);
@@ -290,6 +293,7 @@ bool Scene::load() {
 		else if (line.find("Object") == 0) {
 			int model_index = 0;
 			std::vector<int> trans_indices;
+			trans::Transformation* default_trans = nullptr;
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
@@ -300,6 +304,11 @@ bool Scene::load() {
 				if (key == "transformations") {
 					parseArray(line, &trans_indices);
 				}
+				if (key == "default_transformation") {
+					int idx;
+					sstream >> idx;
+					default_trans = transformations[idx];
+				}
 				else  if (key == "model") {
 					sstream >> model_index;
 				}
@@ -307,12 +316,13 @@ bool Scene::load() {
 				std::getline(description, line);
 			}
 
-			std::vector<trans::Transformation*> object_transformations;
+			std::pair<trans::Transformation*, std::vector<trans::Transformation*>> object_transformations;
+			object_transformations.first = default_trans;
 			for (int idx : trans_indices) {
-				object_transformations.push_back(transformations[idx]);
+				object_transformations.second.push_back(transformations[idx]);
 			}
-			if (object_transformations.size() == 0) {
-				object_transformations.push_back(new trans::Transformation());
+			if (object_transformations.second.size() == 0) {
+				object_transformations.second.push_back(new trans::Transformation());
 			}
 			objects.push_back(std::make_pair(models[model_index], object_transformations));
 		}
@@ -365,9 +375,10 @@ bool Scene::load() {
 				generator.addObstacles(obstacles);
 			}
 
-			std::vector<trans::Transformation*> random_transformations;
+			std::pair<trans::Transformation*, std::vector<trans::Transformation*>> random_transformations;
 
-			random_transformations = generator.generateTransformations(count, bound1, bound2, base_trans);
+			random_transformations.first = base_trans;
+			random_transformations.second = generator.generateTransformations(count, bound1, bound2);
 
 			std::vector<glm::vec3> new_obstacles = generator.getObstacles();
 			obstacles.reserve(obstacles.size() + new_obstacles.size());
@@ -622,15 +633,14 @@ bool Scene::load() {
 				}
 				std::getline(description, line);
 			}
-			std::vector<Shader> shaders;
-			shaders.push_back(Shader("FloorVertexShader.glsl", GL_VERTEX_SHADER));
-			shaders.push_back(Shader("FloorFragmentShader.glsl", GL_FRAGMENT_SHADER));
-			Program* floor_program = new Program(shaders);
-			lights->subscribe(floor_program);
-			FloorRenderer* renderer = new FloorRenderer(floor_program, size, dimension, texture);
-
-			programs.push_back(floor_program);
-			other_renderers.push_back(renderer);
+			std::vector<Texture*> textures;
+			textures.push_back(texture);
+			FloorGenerator generator(dimension, size, textures);
+			std::vector<trans::Transformation*> tmp;
+			tmp.push_back(new trans::Transformation());
+			object::Object* obj = generator.generate();
+			models.push_back(obj);
+			objects.push_back(std::make_pair(obj, std::make_pair(nullptr, tmp)));
 		}
 	}
 

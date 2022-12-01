@@ -13,12 +13,13 @@ private:
 	Program* shadow_program;
 
 
-	GLuint pvmatrix_ID;
+	GLuint pvmatrix_ID, texture_ID, opacity_ID, has_textures_ID;
 public:
 	ShadowMapper();
 	void prepare(int* transformation_idx);
 	void useLight(Light::LightStruct light, unsigned int index);
 	void renderShadows(object::Mesh* mesh, size_t count);
+	void useTextures(std::vector<Texture*> textures);
 	GLuint getUnit();
 
 	GLuint getDepthMap();

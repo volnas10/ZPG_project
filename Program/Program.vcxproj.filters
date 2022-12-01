@@ -63,6 +63,9 @@
     <ClCompile Include="Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FloorGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\SkyboxFragmentShader.glsl">
@@ -72,12 +75,6 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\SunFragmentShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\FloorFragmentShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\FloorVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\VertexShader_simple.glsl">
@@ -102,6 +99,12 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\DepthMapVertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\CrosshairFragmentShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\CrosshairVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -146,6 +149,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FloorGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

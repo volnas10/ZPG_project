@@ -10,6 +10,11 @@ TransformationBuffer::TransformationBuffer() {
 	glBindBuffer(GL_UNIFORM_BUFFER, buffer_ID);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * MAX_TRANSFORMATIONS, NULL, GL_DYNAMIC_DRAW);
 	updated = true;
+	default_transformation = nullptr;
+}
+
+void TransformationBuffer::setDefaultTransformation(trans::Transformation* transformation) {
+	default_transformation = transformation;
 }
 
 void TransformationBuffer::setTransformations(std::vector<trans::Transformation*> transformations) {
@@ -19,8 +24,12 @@ void TransformationBuffer::setTransformations(std::vector<trans::Transformation*
 }
 
 void TransformationBuffer::addTransformation(trans::Transformation* transformation) {
+	if (default_transformation != nullptr) {
+		*transformation << *default_transformation;
+	}
 	transformations.push_back(transformation->getTransformation());
 	transformation->addDependency(transformations.size(), this);
+	updated = true;
 }
 
 void TransformationBuffer::updateTransformation(size_t at, glm::mat4 transformation) {

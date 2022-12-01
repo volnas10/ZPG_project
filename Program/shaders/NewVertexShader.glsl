@@ -3,6 +3,8 @@
 layout(location = 0) in vec3 VertexPosition;
 layout(location = 1) in vec3 VertexNormal;
 layout(location = 2) in vec2 VertexUV;
+layout(location = 3) in vec3 Tangent;
+layout(location = 4) in vec3 Bitangent;
 
 // ws - worldspace
 // cs - cameraspace
@@ -15,9 +17,12 @@ out vec3 vertexPosition_ws;
 out vec3 vertexPosition_cs;
 out vec3 normal_cs;
 out vec3 eyeDirection_cs;
-out vec3 lightDirections_cs[6];
-out vec3 spotlightDirections_cs[6];
-out float lightDistances[6];
+out vec3 lightDirections_cs[8];
+out vec3 spotlightDirections_cs[8];
+out float lightDistances[8];
+
+
+uniform vec3 HasTextures;
 
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionViewMatrix;
@@ -45,8 +50,9 @@ void main(){
 	
 	vertexPosition_cs = ( ViewMatrix * vec4(vertexPosition_ws,1)).xyz;
 
-	normal_cs = ( ViewMatrix * model_matrix[gl_InstanceID] * vec4(VertexNormal,0)).xyz;
+	mat3 modelViewMatrix = mat3(ViewMatrix * model_matrix[gl_InstanceID]);
 
+	normal_cs = modelViewMatrix * VertexNormal;
 
 	eyeDirection_cs = vec3(0,0,0) - vertexPosition_cs;
 

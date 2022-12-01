@@ -85,8 +85,9 @@ namespace trans {
 	}
 
 	void Transformation::operator<<(Transformation& b) {
-		transformations.push_back(&b);
+		transformations.insert(transformations.begin(), &b);
 		b.addParent(this);
+		up_to_date = false;
 	}
 
 	void Transformation::addParent(Transformation* t) {
@@ -173,7 +174,7 @@ namespace trans {
 		return obstacles;
 	}
 
-	std::vector<Transformation*> TransformationGenerator::generateTransformations(int count, glm::vec3 bound1, glm::vec3 bound2, Transformation* previous) {
+	std::vector<Transformation*> TransformationGenerator::generateTransformations(int count, glm::vec3 bound1, glm::vec3 bound2) {
 		std::random_device rd;
 		std::mt19937 e2(rd());
 
@@ -226,9 +227,6 @@ namespace trans {
 		std::vector<Transformation*> transformations;
 		for (int j = obstacles.size() - generated; j < obstacles.size(); j++) {
 			Transformation* t = new Transformation();
-			if (previous != nullptr) {
-				*t << *previous;
-			}
 			t->scale(size_generator(e2));
 			// Just rotate around Y randomly... Not like this is going to be used for any other scenario
 			t->rotate(0, rotation_generator(e2), 0);

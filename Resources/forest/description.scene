@@ -3,6 +3,8 @@ Transformation {
 }
 Transformation {
 	scale: 0.04 0.04 0.04
+}
+Transformation {
 	position: 5.0 0.0 0.0
 }
 Model {
@@ -13,11 +15,12 @@ Model {
 }
 Object {
 	model: 0
-	transformations: [0]
+	default_transformation: 1
+	transformations: [2]
 }
 Object {
 	model: 1
-	transformations: [1]
+	default_transformation: 0
 }
 Shader {
 	type: vertex
@@ -30,14 +33,10 @@ Shader {
 Light {
 	type: directional
 	color: 1.0 1.0 1.0
-	direction: 1.0 -0.5 1.0
+	direction: 1.0 -1.0 1.0
 }
 Program {
 	shaders: [0, 1]
-}
-Renderer {
-	objects: [0, 1]
-	program: 0
 }
 Floor {
 	diffuse_texture: grass01.jpg
@@ -45,6 +44,10 @@ Floor {
 	specular_map: grass01_s.jpg
 	size: 2
 	dimension: 80
+}
+Renderer {
+	objects: [0, 1, 2]
+	program: 0
 }
 Camera {
 	position: 0 5 0

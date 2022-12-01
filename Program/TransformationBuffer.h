@@ -15,6 +15,7 @@ namespace trans {
 // Class that takes care of all transformations for one mesh efficiently
 class TransformationBuffer {
 private:
+	trans::Transformation* default_transformation;
 	std::vector<glm::mat4> transformations;
 
 	GLuint buffer_ID;
@@ -22,6 +23,7 @@ private:
 	bool updated;
 public:
 	TransformationBuffer();
+	void setDefaultTransformation(trans::Transformation* transformation);
 	void setTransformations(std::vector<trans::Transformation*> transformations);
 	void addTransformation(trans::Transformation* transformation);
 	void updateTransformation(size_t at, glm::mat4 transformation);

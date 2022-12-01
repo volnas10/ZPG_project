@@ -84,78 +84,6 @@ void SkyboxRenderer::render() {
     glEnable(GL_DEPTH_TEST);
 }
 
-FloorRenderer::FloorRenderer(Program* program, float size, int dimension, Texture* texture) : AbstractRenderer(program) {
-    this->program = program;
-    this->texture = texture;
-
-    texture_samplers.push_back(program->getUniformLocation("TextureSampler"));
-
-    float half_size = size / 2;
-
-    float vertices[] = {
-        -half_size , 0, -half_size,
-        half_size, 0, -half_size,
-        -half_size, 0, half_size,
-
-        half_size , 0, -half_size,
-        half_size, 0, half_size,
-        -half_size, 0, half_size
-    };
-
-    srand( (unsigned int) time(NULL));
-    std::vector<glm::vec2> offsets;
-    std::vector<float> rotations; // Doesn't work with integers for some reason
-    float begin = (size * dimension) / 2 - half_size;
-    for (int i = 0; i < dimension; i++) {
-        for (int j = 0; j < dimension; j++) {
-            offsets.push_back(glm::vec2(i * size - begin, j * size - begin));
-            // Rotate tiles randomly
-            rotations.push_back((float) (rand() % 4));
-        }
-    }
-
-    tile_count = (int) offsets.size();
-
-    glGenBuffers(1, &plane_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, plane_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-     glGenBuffers(1, &offset_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, offset_buffer);
-    glBufferData(GL_ARRAY_BUFFER, offsets.size() * sizeof(glm::vec2), &offsets[0], GL_STATIC_DRAW);
-
-    glGenBuffers(1, &rotation_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, rotation_buffer);
-    glBufferData(GL_ARRAY_BUFFER, rotations.size() * sizeof(float), &rotations[0], GL_STATIC_DRAW);
-
-    program->use();
-    glUniform1i(texture_samplers[0], texture->getUnit());
-    program->stopUsing();
-}
-
-void FloorRenderer::render() {
-    program->use();
-
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, plane_VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, offset_buffer);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribDivisor(1, 1);
-
-    glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, rotation_buffer);
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribDivisor(2, 1);
-
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, tile_count);
-    glVertexAttribDivisor(1, 0);
-    glVertexAttribDivisor(2, 0);
-
-    program->stopUsing();
-}
 
 Renderer::Renderer(Program* program) {
     this->program = program;
@@ -188,15 +116,18 @@ void Renderer::render(object::Mesh* mesh, size_t count) {
     program->stopUsing();
 }
 
+int RenderingGroup::id_counter = 0;
+
 RenderingGroup::RenderingGroup(Program* program) {
-    renderer = new Renderer(program);;
+    renderer = new Renderer(program);
+    id = id_counter++;
 }
 
 void RenderingGroup::addObjectTransformation(object::Object* object, trans::Transformation* transformation) {
-    objects[object].push_back(transformation);
+    objects[object].second.push_back(transformation);
 }
 
-void RenderingGroup::addAllObjectTransformations(object::Object* object, std::vector<trans::Transformation*> transformations) {
+void RenderingGroup::addAllObjectTransformations(object::Object* object, std::pair<trans::Transformation*, std::vector<trans::Transformation*>> transformations) {
     objects[object] = transformations;
 }
 
@@ -204,7 +135,14 @@ std::vector<trans::Transformation*> RenderingGroup::getTransformations(object::O
     if (objects.find(object) == objects.end()) {
         return std::vector<trans::Transformation*>();
     }
-    return objects[object];
+    return objects[object].second;
+}
+
+trans::Transformation* RenderingGroup::getDefaultTransformation(object::Object* object) {
+    if (objects.find(object) == objects.end()) {
+        return nullptr;
+    }
+    return objects[object].first;
 }
 
 Renderer* RenderingGroup::getRenderer() {
@@ -245,4 +183,55 @@ void DepthMapRenderer::render(GLuint depth_map_ID) {
 
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    program->stopUsing();
+}
+
+CrosshairRenderer::CrosshairRenderer() : AbstractRenderer() {
+    std::vector<Shader> shaders;
+    shaders.push_back(Shader("CrosshairVertexShader.glsl", GL_VERTEX_SHADER));
+    shaders.push_back(Shader("CrosshairFragmentShader.glsl", GL_FRAGMENT_SHADER));
+    program = new Program(shaders);
+    float quad_vertices[] = {
+        // positions        // texture Coords
+        -0.02f,  0.02f, 0.0f, 0.0f, 1.0f,
+        -0.02f, -0.02f, 0.0f, 0.0f, 0.0f,
+         0.02f,  0.02f, 0.0f, 1.0f, 1.0f,
+         0.02f, -0.02f, 0.0f, 1.0f, 0.0f,
+    };
+
+    texture_samplers.push_back(program->getUniformLocation("Crosshair"));
+    aspect_ratio_ID = program->getUniformLocation("AspectRatio");
+
+    crosshair_texture = new Texture();
+    crosshair_texture->load("../Resources/crosshair.png");
+    crosshair_texture->setType(Texture::DIFFUSE);
+
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
+}
+
+void CrosshairRenderer::render() {
+    program->use();
+
+    glDisable(GL_DEPTH_TEST);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glUniform1i(texture_samplers[0], crosshair_texture->getUnit());
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glEnable(GL_DEPTH_TEST);
+
+    program->stopUsing();
+}
+
+void CrosshairRenderer::updateSize(int width, int height) {
+    program->use();
+    glUniform1f(aspect_ratio_ID, (float)width / height);
+    program->stopUsing();
 }

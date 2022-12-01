@@ -50,8 +50,9 @@ Light::LightStruct Light::toStruct() {
 	l_struc.type = light_type;
 	l_struc.color = glm::vec4(color, 0);
 
-	glm::vec3 dir;
-	glm::vec3 pos;
+
+	glm::vec3 dir = direction;
+	glm::vec3 pos = position;;
 	if (transformation != nullptr) {
 		dir = glm::vec3(transformation->getTransformation() * glm::vec4(direction, 1));
 		pos = glm::vec3(transformation->getTransformation() * glm::vec4(position, 1));
@@ -92,27 +93,30 @@ void Light::update() {
 }
 
 void Light::calculateMatrix() {
-	glm::vec3 dir;
-	glm::vec3 pos;
+	glm::vec3 dir = direction;
+	glm::vec3 pos = position;
 	if (transformation != nullptr) {
 		dir = glm::vec3(transformation->getTransformation() * glm::vec4(direction, 1));
 		pos = glm::vec3(transformation->getTransformation() * glm::vec4(position, 1));
 	}
 	// Orthographic matrix for directional light
 	if (light_type == DIRECTIONAL) {
-		glm::mat4 projection_matrix = glm::ortho(-20.0, 20.0, -20.0, 20.0, -20.0, 20.0);
+		glm::mat4 projection_matrix = glm::ortho(-30.0, 30.0, -30.0, 30.0, -40.0, 40.0);
 		glm::mat4 view_matrix = glm::lookAt(glm::vec3(0, 0, 0), dir, glm::vec3(0, 1, 0));
 		lightspace_matrix = projection_matrix * view_matrix;
 	}
 	// Perspective projection for spotlight
 	else if (light_type == SPOTLIGHT) {
-		glm::mat4 projection_matrix = glm::perspective(angle, 1.0f, 0.0f, 100.0f);
+		glm::mat4 projection_matrix = glm::perspective(glm::radians(angle), 1.0f, 0.1f, 100.0f);
 		glm::mat4 view_matrix = glm::lookAt(pos, pos + dir, glm::vec3(0, 1, 0));
 		lightspace_matrix = projection_matrix * view_matrix;
 	}
 	// Perspective projection in 6 directions for point light
 	else if (light_type == POINT) {
 		// TODO
+	}
+	else if (light_type == FLASHLIGHT) {
+		lightspace_matrix = glm::perspective(glm::radians(angle), 1.0f, 0.1f, 100.0f);
 	}
 }
 
@@ -133,7 +137,10 @@ void LightCollection::addLight(Light* light) {
 void LightCollection::lightChanged(size_t pos) {
 	light_structs[pos] = lights[pos]->toStruct();
 	if (lights[pos]->getType() == Light::DIRECTIONAL) {
-		light_structs[pos].lightspace_matrix = glm::translate(lights[pos]->getMatrix(), light_offset);
+		light_structs[pos].lightspace_matrix = glm::translate(lights[pos]->getMatrix(), -camera_position);
+	}
+	else if (lights[pos]->getType() == Light::SPOTLIGHT) {
+		light_structs[pos].lightspace_matrix = lights[pos]->getMatrix();
 	}
 	notifySubscribers();
 }
@@ -153,12 +160,16 @@ void LightCollection::notifySubscribers() {
 	}
 }
 
-void LightCollection::updateCameraPosition(glm::vec3 position) {
-	light_offset = -position;
+void LightCollection::updateCamera(glm::mat4 view_matrix, glm::mat4 projection_matrix) {
+	camera_position = glm::vec3(glm::inverse(view_matrix)[3]);
+
 	// Directional light will be following camera so only the part of scene around them gets shadows
 	for (int i = 0; i < lights.size(); i++) {
 		if (lights[i]->getType() == Light::DIRECTIONAL) {
-			light_structs[i].lightspace_matrix = glm::translate(lights[i]->getMatrix(), light_offset);
+			light_structs[i].lightspace_matrix = glm::translate(lights[i]->getMatrix(), -camera_position);
+		}
+		else if (lights[i]->getType() == Light::SPOTLIGHT) {
+			light_structs[i].lightspace_matrix = lights[i]->getMatrix();
 		}
 	}
 	notifySubscribers();

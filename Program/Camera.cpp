@@ -24,17 +24,9 @@ void Camera::subscribe(CameraSubscriber* subscriber) {
 	subscriber->updateCamera(view_matrix, projection_matrix);
 }
 
-void Camera::subscribe(CameraPositionSubscriber* subscriber) {
-	position_subscribers.push_back(subscriber);
-	subscriber->updateCameraPosition(position);
-}
-
 void Camera::notifySubscribers() {
 	for (CameraSubscriber* sub : matrix_subscribers) {
 		sub->updateCamera(view_matrix, projection_matrix);
-	}
-	for (CameraPositionSubscriber* sub : position_subscribers) {
-		sub->updateCameraPosition(position);
 	}
 }
 
@@ -50,6 +42,7 @@ void Camera::move(glm::vec3 dir, float h_angle, float v_angle) {
 	    sin(vertical_angle),
 	    cos(vertical_angle) * cos(horizontal_angle)
 	);
+
 
 	glm::vec3 right(
 	    sin(horizontal_angle - glm::pi<float>() / 2.0f),
@@ -81,10 +74,15 @@ void Camera::changeFov(float value) {
 	notifySubscribers();
 }
 
-void Camera::changeAspectRatio(float aspect_ratio) {
-	this->aspect_ratio = aspect_ratio;
+void Camera::updateSize(int width, int height)
+{
+	this->aspect_ratio = (float) width / height;
 	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 150.0f);
 	notifySubscribers();
+}
+
+glm::vec3 Camera::transformToWorldspace(glm::vec3 pos, glm::vec4 viewport) {
+	return glm::unProject(pos, view_matrix, projection_matrix, viewport);
 }
 
 glm::mat4 Camera::getView() {

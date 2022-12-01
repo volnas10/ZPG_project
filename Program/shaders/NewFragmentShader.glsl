@@ -5,9 +5,12 @@ in vec3 vertexPosition_ws;
 in vec3 vertexPosition_cs;
 in vec3 normal_cs;
 in vec3 eyeDirection_cs;
-in vec3 lightDirections_cs[6];
-in vec3 spotlightDirections_cs[6];
-in float lightDistances[6];
+in vec3 lightDirections_cs[8];
+in vec3 spotlightDirections_cs[8];
+in float lightDistances[8];
+
+in vec3 eyeDirection_ts;
+in vec3 lightDirection_ts;
 
 out vec4 color;
 
@@ -148,7 +151,7 @@ void main(){
 		color.a = diffuseColor.a;
 	}
 
-	if (color.a < 0.5) discard;
+	if (color.a < 0.8) discard;
 
 	vec3 N = normalize(normal_cs);
 	vec3 E = normalize(eyeDirection_cs);
@@ -200,4 +203,5 @@ void main(){
 	}
 
 	color.rgb = finalColor;
+
 }
