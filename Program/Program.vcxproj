@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BezierCurve.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="FloorGenerator.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -44,6 +45,7 @@
     <None Include="shaders\VertexShader_simple.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BezierCurve.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="FloorGenerator.h" />
     <ClInclude Include="Light.h" />

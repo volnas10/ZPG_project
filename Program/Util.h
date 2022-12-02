@@ -11,6 +11,7 @@
 
 class TransformationBuffer;
 class Light;
+class BezierCurve;
 
 namespace trans {
 
@@ -76,6 +77,7 @@ namespace trans {
 		void changed();
 
 		void operator<<(Transformation& b);
+		void addTransformation(Transformation* t);
 		void addParent(Transformation* t);
 		void addDependency(size_t index, TransformationBuffer* buffer);
 		void addDependency(Light* light);
@@ -90,8 +92,10 @@ namespace trans {
 	class TransformationController {
 	private:
 		std::unordered_map<TransformationLeaf*, glm::vec3> changes;
+		std::vector<BezierCurve*> curves;
 	public:
 		void addChange(TransformationLeaf* t, glm::vec3 change);
+		void addCurve(BezierCurve* curve);
 		void move(double delta_time);
 	};
 
@@ -111,6 +115,8 @@ namespace trans {
 
 namespace stringutil {
 	void replaceChar(char* ptr, char from, char to);
+	void parseArray(std::string line, std::vector<int>* storage);
+	void parsePointArray(std::string line, std::vector<glm::vec3>* storage);
 }
 
 

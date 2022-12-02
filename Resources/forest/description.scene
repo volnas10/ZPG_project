@@ -7,6 +7,10 @@ Transformation {
 Transformation {
 	position: 5.0 0.0 0.0
 }
+Transformation {
+	rotation: 0.0 0.1 0.0
+	change: 0.0 0.1 0.0
+}
 Model {
 	name: bush.fbx
 }
@@ -33,7 +37,8 @@ Shader {
 Light {
 	type: directional
 	color: 1.0 1.0 1.0
-	direction: 1.0 -1.0 1.0
+	direction: 1.0 -0.8 1.0
+	transformation: 3
 }
 Program {
 	shaders: [0, 1]

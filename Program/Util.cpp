@@ -1,7 +1,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <string>
 
 #include "TransformationBuffer.h"
+#include "BezierCurve.h"
 
 #include "Light.h"
 
@@ -90,6 +92,12 @@ namespace trans {
 		up_to_date = false;
 	}
 
+	void Transformation::addTransformation(Transformation* t) {
+		transformations.push_back(t);
+		t->addParent(this);
+		up_to_date = false;
+	}
+
 	void Transformation::addParent(Transformation* t) {
 		parents.push_back(t);
 		up_to_date = false;
@@ -138,12 +146,19 @@ namespace trans {
 		changes[t] = change;
 	}
 
+	void TransformationController::addCurve(BezierCurve* curve) {
+		curves.push_back(curve);
+	}
+
 	void TransformationController::move(double delta_time) {
 		for (auto pair : changes) {
 			pair.first->add(
 				(float) pair.second.x * delta_time,
 				(float) pair.second.y * delta_time,
 				(float) pair.second.z * delta_time);
+		}
+		for (BezierCurve* c : curves) {
+			c->move(delta_time);
 		}
 	}
 
@@ -247,6 +262,49 @@ namespace stringutil {
 				ptr[i] = to;
 			}
 			i++;
+		}
+	}
+
+	void parseArray(std::string line, std::vector<int>* storage) {
+		size_t start = line.find("[");
+		int index = 0;
+		for (int i = start + 1; i < line.size(); i++) {
+			char ch = line[i];
+			if (ch >= '0' && ch <= '9') {
+				index *= 10;
+				index += ch - '0';
+			}
+			else if (ch == ',' || ch == ']') {
+				storage->push_back(index);
+				index = 0;
+			}
+		}
+	}
+	void parsePointArray(std::string line, std::vector<glm::vec3>* storage) {
+		size_t start = line.find("[");
+		for (int i = start + 1; i < line.size(); i++) {
+			char ch = line[i];
+			if (ch == '(') {
+				glm::vec3 point;
+				std::string num = "";
+				int v = 0;
+				for (i = i + 1;; i++) {
+					ch = line[i];
+					if (ch == ',') {
+						point[v] = std::stof(num);
+						num = "";
+						v++;
+					}
+					else if (ch == ')') {
+						point[v] = std::stof(num);
+						break;
+					}
+					else if (ch == '.' || ch == '-' || (ch >= '0' && ch <= '9')) {
+						num += ch;
+					}
+				}
+				storage->push_back(point);
+			}
 		}
 	}
 }

@@ -101,7 +101,7 @@ void Light::calculateMatrix() {
 	}
 	// Orthographic matrix for directional light
 	if (light_type == DIRECTIONAL) {
-		glm::mat4 projection_matrix = glm::ortho(-30.0, 30.0, -30.0, 30.0, -40.0, 40.0);
+		glm::mat4 projection_matrix = glm::ortho(-40.0, 40.0, -40.0, 40.0, -40.0, 40.0);
 		glm::mat4 view_matrix = glm::lookAt(glm::vec3(0, 0, 0), dir, glm::vec3(0, 1, 0));
 		lightspace_matrix = projection_matrix * view_matrix;
 	}

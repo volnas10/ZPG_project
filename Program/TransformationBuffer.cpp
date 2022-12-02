@@ -28,7 +28,7 @@ void TransformationBuffer::addTransformation(trans::Transformation* transformati
 		*transformation << *default_transformation;
 	}
 	transformations.push_back(transformation->getTransformation());
-	transformation->addDependency(transformations.size(), this);
+	transformation->addDependency(transformations.size() - 1, this);
 	updated = true;
 }
 

@@ -19,26 +19,12 @@
 #include "Light.h"
 #include "Texture.h"
 #include "FloorGenerator.h"
+#include "BezierCurve.h"
 
 #include "Scene.h"
 
 using namespace Assimp;
 
-void parseArray(std::string line, std::vector<int>* storage) {
-	size_t start = line.find("[");
-	int index = 0;
-	for (int i = start + 1; i < line.size(); i++) {
-		char ch = line[i];
-		if (ch >= '0' && ch <= '9') {
-			index *= 10;
-			index += ch - '0';
-		}
-		else if (ch == ',' || ch == ']') {
-			storage->push_back(index);
-			index = 0;
-		}
-	}
-}
 
 object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 	std::vector<Texture*> memory_textures;
@@ -199,8 +185,8 @@ bool Scene::load() {
 	}
 
 	std::vector<trans::Transformation*> transformations;
+	std::vector<BezierCurve*> bezier_curves;
 	std::vector<Shader> shaders;
-	lights = new LightCollection();
 	std::vector<glm::vec3> obstacles;
 	
 	Importer importer;
@@ -211,6 +197,8 @@ bool Scene::load() {
 		// Load transformation
 		if (line.find("Transformation") == 0) {
 			trans::Transformation* transformation = new trans::Transformation();
+			bool transformed = false;
+			int curve_idx = -1;
 			// Load parameters
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
@@ -223,24 +211,31 @@ bool Scene::load() {
 					float x, y, z;
 					sstream >> x >> y >> z;
 					t_leaf = transformation->scale(x, y, z);
+					transformed = true;
 				}
 				else if (key == "position") {
 					float x, y, z;
 					sstream >> x >> y >> z;
 					t_leaf = transformation->translate(x, y, z);
 					obstacles.push_back(glm::vec3(x, y, z));
+					transformed = true;
 				}
 				else if (key == "rotation") {
 					float x, y, z;
 					sstream >> x >> y >> z;
 					t_leaf = transformation->rotate(x / 57.29f, y / 57.29f, z / 57.29f); // (x / 180) * pi = x / 57.29
+					transformed = true;
 				}
 				else if (key == "transformations") {
 					std::vector<int> trans_indices;
-					parseArray(line, &trans_indices);
+					stringutil::parseArray(line, &trans_indices);
 					for (int i : trans_indices) {
 						*transformation << *transformations[i];
 					}
+					transformed = true;
+				}
+				else if (key == "curve") {
+					sstream >> curve_idx;
 				}
 				std::getline(description, line);
 
@@ -250,9 +245,43 @@ bool Scene::load() {
 					sstream >> key >> change.x >> change.y >> change.z;
 					transformation_controller.addChange(t_leaf, change);
 				}
+
+				if (!transformed && curve_idx >= 0) {
+					delete transformation;
+					transformation = bezier_curves[curve_idx]->getTransformation();
+				}
 			}
 			// All parameters loaded, save transformation
 			transformations.push_back(transformation);
+		}
+		// Load curve
+		if (line.find("Curve") == 0) {
+			std::vector<glm::vec3> points;
+			int order = 1;
+			float speed = 0.1;
+			// Load parameters
+			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key;
+				sstream >> key;
+				key.pop_back();
+				if (key == "points") {
+					stringutil::parsePointArray(line, &points);
+				}
+				else if (key == "speed") {
+					sstream >> speed;
+				}
+				else if (key == "order") {
+					sstream >> order;
+				}
+				std::getline(description, line);
+
+			}
+			// All parameters loaded, save transformation
+			BezierCurve* bc = new BezierCurve(points, order, speed);
+			bezier_curves.push_back(bc);
+			transformation_controller.addCurve(bc);
 		}
 		// Load model
 		else if (line.find("Model") == 0) {
@@ -302,7 +331,7 @@ bool Scene::load() {
 				sstream >> key;
 				key.pop_back();
 				if (key == "transformations") {
-					parseArray(line, &trans_indices);
+					stringutil::parseArray(line, &trans_indices);
 				}
 				if (key == "default_transformation") {
 					int idx;
@@ -488,7 +517,7 @@ bool Scene::load() {
 				sstream >> key;
 				key.pop_back();
 				if (key == "shaders") {
-					parseArray(line, &shader_indices);
+					stringutil::parseArray(line, &shader_indices);
 				}
 
 				std::getline(description, line);
@@ -513,7 +542,7 @@ bool Scene::load() {
 				sstream >> key;
 				key.pop_back();
 				if (key == "objects") {
-					parseArray(line, &object_indices);
+					stringutil::parseArray(line, &object_indices);
 				}
 				else if (key == "program") {
 					sstream >> program_index;
