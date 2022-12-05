@@ -50,9 +50,11 @@ void main(){
 	
 	vertexPosition_cs = ( ViewMatrix * vec4(vertexPosition_ws,1)).xyz;
 
-	mat3 modelViewMatrix = mat3(ViewMatrix * model_matrix[gl_InstanceID]);
+	mat4 modelViewMatrix = ViewMatrix * model_matrix[gl_InstanceID];
 
-	normal_cs = modelViewMatrix * VertexNormal;
+	mat4 normalMatrix = transpose(inverse(modelViewMatrix));
+
+	normal_cs = vec3(normalMatrix * vec4(VertexNormal, 1));
 
 	eyeDirection_cs = vec3(0,0,0) - vertexPosition_cs;
 
