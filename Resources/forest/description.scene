@@ -37,7 +37,7 @@ Shader {
 Light {
 	type: directional
 	color: 1.0 1.0 1.0
-	direction: 1.0 -0.8 1.0
+	direction: -1.0 -0.8 1.0
 	transformation: 3
 }
 Program {

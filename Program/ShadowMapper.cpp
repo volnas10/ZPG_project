@@ -9,7 +9,7 @@
 
 #include "ShadowMapper.h"
 
-const unsigned int SHADOW_WIDTH = 4096 * 2, SHADOW_HEIGHT = 4096 * 2, SHADOW_COUNT = 6;
+const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096, SHADOW_COUNT = 6;
 
 ShadowMapper::ShadowMapper() {
     // Depth buffer and shadow map shinanigans

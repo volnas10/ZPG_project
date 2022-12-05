@@ -31,7 +31,7 @@ Window::Window(GLFWwindow* window) {
 
     last_time = -1;
 
-    scene = new Scene("curves");
+    scene = new Scene("forest");
     scene->load();
     
     camera = scene->getCamera();

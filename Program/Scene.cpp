@@ -230,7 +230,8 @@ bool Scene::load() {
 					std::vector<int> trans_indices;
 					stringutil::parseArray(line, &trans_indices);
 					for (int i : trans_indices) {
-						*transformation << *transformations[i];
+						transformation->addTransformation(transformations[i]);
+						//*transformation << *transformations[i];
 					}
 					transformed = true;
 				}
@@ -293,10 +294,10 @@ bool Scene::load() {
 				sstream >> key;
 				key.pop_back();
 				if (key == "name") {
-					std::string name;
-					sstream >> name;
+					std::string obj_name;
+					sstream >> obj_name;
 
-					const aiScene* scene = importer.ReadFile((path + name).c_str(),
+					const aiScene* scene = importer.ReadFile((path + obj_name).c_str(),
 						aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace);
 					if (!scene) {
 						description.close();
@@ -306,9 +307,9 @@ bool Scene::load() {
 					}
 
 					std::string model_path = path;
-					size_t last_slash = name.rfind('/');
+					size_t last_slash = obj_name.rfind('/');
 					if (last_slash != std::string::npos) {
-						path += name.substr(0, last_slash);
+						model_path += obj_name.substr(0, last_slash + 1);
 					}
 
 					object::Object* obj = parseObject(scene, aiString(model_path));
