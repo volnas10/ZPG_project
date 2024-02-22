@@ -12,20 +12,24 @@
 
 #include "Window.h"
 
-static void error_callback(int error, const char* description){ fputs(description, stderr); }
+static void glfw_error_callback(int error, const char* description){ fputs(description, stderr); }
+
+static void gl_error_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
+	std::cout << "GL CALLBACK: " << (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "") << "type = 0x" << type << ", severity = 0x" << severity << ", message = " << message << std::endl;
+}
 
 int main() {
 
 	GLFWwindow* window;
-	glfwSetErrorCallback(error_callback);
+	glfwSetErrorCallback(glfw_error_callback);
 
 	if (!glfwInit())
 		exit(EXIT_FAILURE);
 
 	glfwWindowHint(GLFW_SAMPLES, 4);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	window = glfwCreateWindow(1024, 768, "ZPG", NULL, NULL);
 
 	if (!window) {
@@ -59,6 +63,9 @@ int main() {
 	// If fragment is transparent, throw it away
 	glAlphaFunc(GL_GREATER, 0.5);
 	glEnable(GL_ALPHA_TEST);
+
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(gl_error_callback, nullptr);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
