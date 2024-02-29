@@ -9,7 +9,7 @@
 class Texture
 {
 public:
-	enum Type{DIFFUSE, NORMAL, OPACITY, SPECULAR, SKYBOX};
+	enum Type{DIFFUSE, NORMAL, OPACITY, SPECULAR, SKYBOX, HDR};
 
 	void setType(Type t);
 	Type getType();

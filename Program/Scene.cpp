@@ -256,7 +256,7 @@ bool Scene::load() {
 			transformations.push_back(transformation);
 		}
 		// Load curve
-		if (line.find("Curve") == 0) {
+		else if (line.find("Curve") == 0) {
 			std::vector<glm::vec3> points;
 			int order = 1;
 			float speed = 0.1;
@@ -671,6 +671,25 @@ bool Scene::load() {
 			object::Object* obj = generator.generate();
 			models.push_back(obj);
 			objects.push_back(std::make_pair(obj, std::make_pair(nullptr, tmp)));
+		}
+		else if (line.find("HDR") == 0) {
+			std::stringstream sstream(line);
+			std::string key, value;
+			sstream >> key >> value;
+			key.pop_back();
+			if (key == "name") {
+				//std::vector<Shader> shaders;
+				//shaders.push_back(Shader("HDRVertexShader.glsl", GL_VERTEX_SHADER));
+				//shaders.push_back(Shader("HDRFragmentShader.glsl", GL_FRAGMENT_SHADER));
+				//Program* hdr_program = new Program(shaders);
+				Texture* hdr = new Texture();
+				hdr->loadSkybox(path + value);
+				hdr->setType(Texture::HDR);
+				//SkyboxRenderer* renderer = new SkyboxRenderer(hdr_program, hdr);
+				//programs.push_back(hdr_program);
+				//other_renderers.insert(other_renderers.begin(), renderer);
+			}
+			std::getline(description, line);
 		}
 	}
 
