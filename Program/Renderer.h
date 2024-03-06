@@ -13,7 +13,7 @@
 class Renderer {
 private:
 	Program* program;
-	GLuint diffuse_ID, normal_ID, opacity_ID, depth_map_ID, has_textures_ID, use_shadows_ID;
+	GLuint irradiance_ID, diffuse_ID, normal_ID, opacity_ID, depth_map_ID, has_textures_ID, use_shadows_ID;
 public:
 	Renderer(Program* program);
 	void prepare(int* transformations_idx, GLint depth_map_ID);
@@ -64,6 +64,16 @@ public:
 	CrosshairRenderer();
 	void render();
 	void updateSize(int width, int height);
+};
+
+class EnvMapRenderer : public AbstractRenderer {
+private:
+	GLuint sphere_VBO;
+	GLuint triangles;
+	Texture* texture;
+public:
+	EnvMapRenderer(Program* program, Texture* texture, std::vector<float> sphere);
+	void render();
 };
 
 // Used for debugging

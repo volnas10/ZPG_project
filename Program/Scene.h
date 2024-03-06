@@ -22,6 +22,7 @@ private:
 	Camera* camera;
 
 	object::Object* parseObject(const aiScene* scene, aiString path);
+	std::vector<float> parseVertices(const aiScene* scene);
 
 public:
 	Scene(std::string name);

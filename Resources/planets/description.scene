@@ -1,0 +1,75 @@
+# Sun scale
+Transformation {
+	scale: 0.4 0.4 0.4
+}
+# Earth tilt and spin
+Transformation {
+	scale: 0.2 0.2 0.2
+	rotation: 0.0 0.0 0.0
+	change: 0.0 3.0 0.0
+	rotation: 0.0 0.0 -23.0
+}
+# Move away from sun and orbit
+Transformation {
+	rotation: 0.0 0.0 0.0
+	change: 0.0 -0.5 0.0
+	position: 17.0 0.0 0.0
+	rotation: 0.0 0.0 0.0
+	change: 0.0 0.5 0.0
+}
+# Complete Earth transformation
+Transformation {
+	transformations: [1, 2]
+}
+# Move moon away from Earth and orbit
+Transformation {
+	scale: 0.07 0.07 0.07
+	position: 7.0 0.0 0.0
+	rotation: 0.0 0.0 0.0
+	change: 0.0 1.5 0.0
+	transformations: [2]
+}
+Model {
+	name: Sun/Sun.obj
+}
+Model {
+	name: Earth/Earth.obj
+}
+Model {
+	name: Moon/Moon.obj
+}
+Object {
+	model: 0
+	transformations: [0]
+}
+Object {
+	model: 1
+	transformations: [3]
+}
+Object {
+	model: 2
+	transformations: [4]
+}
+Light {
+	type: directional
+	color: 1.0 1.0 0.9
+	direction: 1.0 1.0 -0.5
+}
+Shader {
+	type: vertex
+	name: NewVertexShader.glsl
+}
+Shader {
+	type: fragment
+	name: NewFragmentShader.glsl
+}
+Program {
+	shaders: [0, 1]
+}
+Renderer {
+	objects: [0, 1, 2]
+	program: 0
+}
+Skybox {
+	name: skybox.png
+}

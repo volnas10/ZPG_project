@@ -7,7 +7,9 @@
 #include <unordered_map>
 #include <random>
 
-#define PI 3.14159
+#define PI 3.14159265359
+#define HALF_PI 1.57079632679
+#define TWO_PI 6.28318530718
 
 class TransformationBuffer;
 class Light;

@@ -159,6 +159,31 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 	return object;
 }
 
+std::vector<float> Scene::parseVertices(const aiScene* scene) {
+	aiMesh* mesh = scene->mMeshes[0];
+	std::vector<glm::vec3> vertices;
+	std::vector<unsigned int> indices;
+	for (unsigned int v_index = 0; v_index < mesh->mNumVertices; v_index++) {
+		aiVector3D vertex = mesh->mVertices[v_index];
+		vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
+	}
+	for (unsigned int f_index = 0; f_index < mesh->mNumFaces; f_index++) {
+		aiFace face = mesh->mFaces[f_index];
+		for (int idx = 0; idx < 3; idx++) {
+			indices.push_back(face.mIndices[idx]);
+		}
+	}
+
+	std::vector<float> vertex_data;
+	for (unsigned int index : indices) {
+		glm::vec3 vertex = vertices[index];
+		vertex_data.push_back(vertex.x);
+		vertex_data.push_back(vertex.y);
+		vertex_data.push_back(vertex.z);
+	}
+	return vertex_data;
+}
+
 Scene::Scene(std::string name) {
 	this->name = name;
 	lights = new LightCollection();
@@ -672,24 +697,32 @@ bool Scene::load() {
 			models.push_back(obj);
 			objects.push_back(std::make_pair(obj, std::make_pair(nullptr, tmp)));
 		}
-		else if (line.find("HDR") == 0) {
-			std::stringstream sstream(line);
-			std::string key, value;
-			sstream >> key >> value;
-			key.pop_back();
-			if (key == "name") {
-				//std::vector<Shader> shaders;
-				//shaders.push_back(Shader("HDRVertexShader.glsl", GL_VERTEX_SHADER));
-				//shaders.push_back(Shader("HDRFragmentShader.glsl", GL_FRAGMENT_SHADER));
-				//Program* hdr_program = new Program(shaders);
-				Texture* hdr = new Texture();
-				hdr->loadSkybox(path + value);
-				hdr->setType(Texture::HDR);
-				//SkyboxRenderer* renderer = new SkyboxRenderer(hdr_program, hdr);
-				//programs.push_back(hdr_program);
-				//other_renderers.insert(other_renderers.begin(), renderer);
-			}
+		// Load environment map
+		else if (line.find("Environment") == 0) {
+			Texture* hdri = new Texture();
 			std::getline(description, line);
+			while (line.find("}") == std::string::npos) {
+				std::stringstream sstream(line);
+				std::string key, value;
+				sstream >> key >> value;
+				key.pop_back();
+				if (key == "name") {
+					std::vector<Shader> shaders;
+					shaders.push_back(Shader("EnvMapVertexShader.glsl", GL_VERTEX_SHADER));
+					shaders.push_back(Shader("EnvMapFragmentShader.glsl", GL_FRAGMENT_SHADER));
+					Program* program = new Program(shaders);
+					hdri->loadHDRI((path + value).c_str());
+
+					// Load ico sphere
+					const aiScene* scene = importer.ReadFile("../Resources/ico_sphere.obj", NULL);
+					std::vector<float> sphere = parseVertices(scene);
+
+					EnvMapRenderer* renderer = new EnvMapRenderer(program, hdri, sphere);
+					programs.push_back(program);
+					other_renderers.insert(other_renderers.begin(), renderer);
+				}
+				std::getline(description, line);
+			}
 		}
 	}
 

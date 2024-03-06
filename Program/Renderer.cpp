@@ -89,6 +89,7 @@ Renderer::Renderer(Program* program) {
     this->program = program;
 
     has_textures_ID = program->getUniformLocation("HasTextures");
+    irradiance_ID = program->getUniformLocation("IrradianceSampler");
     diffuse_ID = program->getUniformLocation("DiffuseTextureSampler");
     normal_ID = program->getUniformLocation("NormalTextureSampler");
     opacity_ID = program->getUniformLocation("OpacityTextureSampler");
@@ -110,6 +111,7 @@ void Renderer::prepare(int* transformations_idx, GLint depth_map_ID) {
 }
 
 void Renderer::render(object::Mesh* mesh, size_t count) {
+    glUniform1i(irradiance_ID, 0);
     mesh->bindUniforms(1, diffuse_ID, normal_ID, opacity_ID, has_textures_ID);
     glDrawElementsInstanced(GL_TRIANGLES, (GLsizei) mesh->size(), GL_UNSIGNED_INT, NULL, (GLsizei) count);
 
@@ -234,4 +236,31 @@ void CrosshairRenderer::updateSize(int width, int height) {
     program->use();
     glUniform1f(aspect_ratio_ID, (float)width / height);
     program->stopUsing();
+}
+
+EnvMapRenderer::EnvMapRenderer(Program* program, Texture* texture, std::vector<float> sphere) : AbstractRenderer(program) {
+    this->texture = texture;
+    texture_samplers.push_back(program->getUniformLocation("Skybox"));
+
+    triangles = sphere.size() / 3;
+    glGenBuffers(1, &sphere_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, sphere_VBO);
+    glBufferData(GL_ARRAY_BUFFER, sphere.size() * sizeof(float), &sphere[0], GL_STATIC_DRAW);
+
+    program->use();
+    glUniform1i(texture_samplers[0], texture->getUnit());
+    program->stopUsing();
+}
+
+void EnvMapRenderer::render() {
+    program->use();
+    glDisable(GL_DEPTH_TEST);
+
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, sphere_VBO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+    glDrawArrays(GL_TRIANGLES, 0, triangles);
+
+    glEnable(GL_DEPTH_TEST);
 }

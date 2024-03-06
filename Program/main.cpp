@@ -15,6 +15,9 @@
 static void glfw_error_callback(int error, const char* description){ fputs(description, stderr); }
 
 static void gl_error_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
+	if (severity == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB || severity <= GL_DEBUG_SEVERITY_MEDIUM_ARB) {
+		return;
+	}
 	std::cout << "GL CALLBACK: " << (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "") << "type = 0x" << type << ", severity = 0x" << severity << ", message = " << message << std::endl;
 }
 

@@ -148,6 +148,9 @@ void LightCollection::lightChanged(size_t pos) {
 void LightCollection::subscribe(LightSubscriber* subscriber) {
 	subscribers.push_back(subscriber);
 	std::set<int> indices;
+	if (lights.size() == 0) {
+		return;
+	}
 	for (int i = 0; i < lights.size(); i++) {
 		indices.insert(i);
 	}
@@ -161,6 +164,9 @@ void LightCollection::notifySubscribers() {
 }
 
 void LightCollection::updateCamera(glm::mat4 view_matrix, glm::mat4 projection_matrix) {
+	if (lights.size() == 0) {
+		return;
+	}
 	camera_position = glm::vec3(glm::inverse(view_matrix)[3]);
 
 	// Directional light will be following camera so only the part of scene around them gets shadows

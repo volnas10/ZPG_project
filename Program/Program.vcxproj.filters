@@ -110,6 +110,18 @@
     <None Include="shaders\CrosshairVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shaders\EnvMapFragmentShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\EnvMapVertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\PG2FragmentShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\PG2VertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Program.h">
@@ -158,6 +170,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BezierCurve.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BS_thread_pool.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

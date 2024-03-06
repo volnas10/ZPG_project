@@ -35,8 +35,12 @@
     <None Include="shaders\DepthMapFragmentShader.glsl" />
     <None Include="shaders\DepthMapVertexShader.glsl" />
     <None Include="shaders\FragmentShader_simple.glsl" />
+    <None Include="shaders\EnvMapFragmentShader.glsl" />
+    <None Include="shaders\EnvMapVertexShader.glsl" />
     <None Include="shaders\NewFragmentShader.glsl" />
     <None Include="shaders\NewVertexShader.glsl" />
+    <None Include="shaders\PG2FragmentShader.glsl" />
+    <None Include="shaders\PG2VertexShader.glsl" />
     <None Include="shaders\ShadowFragmentShader.glsl" />
     <None Include="shaders\ShadowVertexShader.glsl" />
     <None Include="shaders\SunFragmentShader.glsl" />
@@ -46,6 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BezierCurve.h" />
+    <ClInclude Include="BS_thread_pool.hpp" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="FloorGenerator.h" />
     <ClInclude Include="Light.h" />

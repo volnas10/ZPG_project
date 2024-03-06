@@ -9,7 +9,7 @@
 class Texture
 {
 public:
-	enum Type{DIFFUSE, NORMAL, OPACITY, SPECULAR, SKYBOX, HDR};
+	enum Type{DIFFUSE, NORMAL, OPACITY, SPECULAR, SKYBOX, HDRI};
 
 	void setType(Type t);
 	Type getType();
@@ -18,6 +18,7 @@ public:
 	bool load(const char* filename);
 	bool loadFromMemory(aiTexture* t);
 	bool loadSkybox(std::string path);
+	bool loadHDRI(const char* filename);
 
 	static GLuint reserveUnit();
 private:
@@ -29,4 +30,10 @@ private:
 	std::string texture_name;
 };
 
+class TextureManager
+{
+public:
+private:
+	
+};
 #endif TEXTURE_H

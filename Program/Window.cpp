@@ -62,7 +62,7 @@ void Window::start() {
     subscribe(crosshair_renderer);
     rendering_scheduler.addPostRenderer(crosshair_renderer);
 
-    rendering_scheduler.useShadows();
+    //rendering_scheduler.useShadows();
     camera->subscribe(scene->getLights());
 
     while (!glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
