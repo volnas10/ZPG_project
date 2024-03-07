@@ -6,9 +6,9 @@
 namespace object {
 	Mesh* object::Object::addMesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
 		std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices,
-		Material material, std::vector<Texture*> textures) {
+		Material material) {
 		
-		Mesh* mesh = new Mesh(vertices, normals, uvs, tangents, bitangents, indices, material, textures);
+		Mesh* mesh = new Mesh(vertices, normals, uvs, tangents, bitangents, indices, material);
 		meshes.push_back(mesh);
 		return mesh;
 	}
@@ -19,11 +19,10 @@ namespace object {
 
 	Mesh::Mesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
 		std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices,
-		Material material, std::vector<Texture*> textures) {
+		Material material) {
 
 		index_count = indices.size();
 		this->material = material;
-		this->textures = textures;
 
 		glGenBuffers(1, &VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -101,7 +100,7 @@ namespace object {
 
 	void Mesh::bindUniforms(GLuint material_binding, GLuint diffuse_t, GLuint normal_t, GLuint opacity_t, GLuint has_textures) {
 		glBindBufferBase(GL_UNIFORM_BUFFER, material_binding, material_buffer);
-		glm::vec3 enabled(0.0);
+
 		for (Texture* t : textures) {
 			if (t->getType() == Texture::DIFFUSE) {
 				glUniform1i(diffuse_t, t->getUnit());
@@ -117,10 +116,6 @@ namespace object {
 			}
 		}
 		glUniform3fv(has_textures, 1, &enabled[0]);
-	}
-
-	std::vector<Texture*> Mesh::getTextures() {
-		return textures;
 	}
 
 	size_t Mesh::size() {

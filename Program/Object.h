@@ -11,28 +11,26 @@
 #include <map>
 #include <string>
 
-#include "Texture.h"
+#include "TextureManager.h"
 #include "Util.h"
 
 namespace object {
+# pragma pack(push, 1)
 	struct Material {
-		glm::vec4 diffuse_color; // r, g, b, a
+		glm::vec4 has_textures; // diffuse, specular, normal
+		glm::vec4 diffuse_color;
 		glm::vec4 specular_color;
 		glm::vec4 ambient_color;
-		glm::vec4 emissive_color;
-		glm::vec4 transparent_color; // r, g, b, opacity
-		glm::vec4 reflective_color; // r, g, b, reflectivity
 		float refraction_index;
 		float shininess;
-		float shininess_strength;
+		int texture_id;
 	};
-
+# pragma pack(pop)
 	// Mesh is a part of object that has only 1 material and (not necessarily) texture
 	class Mesh {
 	private:
 		size_t index_count;
 		Material material;
-		std::vector<Texture*> textures;
 
 		GLuint VBO, VIO;
 		GLuint normal_buffer, uv_buffer, tangent_buffer, bitangent_buffer;
@@ -40,11 +38,10 @@ namespace object {
 	public:
 		Mesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
 			std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices,
-			Material material, std::vector<Texture*> textures);
+			Material material);
 		void bind();
 		void bindForShadows();
 		void bindUniforms(GLuint material_binding, GLuint diffuse_t, GLuint normal_t, GLuint opacity_t, GLuint has_textures);
-		std::vector<Texture*> getTextures();
 
 		size_t size();
 	};
@@ -60,7 +57,7 @@ namespace object {
 
 		Mesh* addMesh(std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals, std::vector<glm::vec2> uvs,
 			std::vector<glm::vec3> tangents, std::vector<glm::vec3> bitangents, std::vector<unsigned int> indices,
-			Material material, std::vector<Texture*> textures);
+			Material material);
 
 		std::vector<Mesh*> getMeshes();
 	};

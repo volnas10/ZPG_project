@@ -8,6 +8,7 @@ in vec3 normal_ws;
 
 out vec4 color;
 
+uniform sampler2D EnvMapSampler;
 uniform sampler2D IrradianceSampler;
 uniform sampler2D TextureSampler;
 
@@ -41,6 +42,6 @@ void main(){
 		diffuseColor = material.diffuse_color;
 	}
 	
-	color.rgb = material.ambient_olor + diffuseColor.rgb * irradiance;
+	color.rgb = material.ambient_color.rgb + diffuseColor.rgb * irradiance;
 	color.a = diffuseColor.a;
 }

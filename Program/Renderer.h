@@ -46,7 +46,7 @@ public:
 	virtual void render() = 0;
 };
 
-// Renderer specialized for rendering skybox only
+/* Renderer specialized for rendering skybox only
 class SkyboxRenderer : public AbstractRenderer {
 private:
 	GLuint cube_VBO;
@@ -55,11 +55,11 @@ public:
 	SkyboxRenderer(Program* program, Texture* texture);
 	void render();
 };
+*/
 
 class CrosshairRenderer : public AbstractRenderer, public WindowSizeSubscriber {
 private:
 	GLuint VBO, aspect_ratio_ID;
-	Texture* crosshair_texture;
 public:
 	CrosshairRenderer();
 	void render();
@@ -70,9 +70,8 @@ class EnvMapRenderer : public AbstractRenderer {
 private:
 	GLuint sphere_VBO;
 	GLuint triangles;
-	Texture* texture;
 public:
-	EnvMapRenderer(Program* program, Texture* texture, std::vector<float> sphere);
+	EnvMapRenderer(Program* program, std::vector<float> sphere);
 	void render();
 };
 

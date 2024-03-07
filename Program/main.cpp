@@ -42,7 +42,7 @@ int main() {
 	}
 
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(0); // V-SYNC
+	glfwSwapInterval(1); // V-SYNC
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -82,7 +82,6 @@ int main() {
 	int major, minor, revision;
 	glfwGetVersion(&major, &minor, &revision);
 	std::cout << "Using GLFW " << major << "." << minor << "." << revision << std::endl;
-
 
 	// Create my window
 	Window my_window(window);

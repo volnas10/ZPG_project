@@ -14,6 +14,7 @@ AbstractRenderer::AbstractRenderer(Program* program) {
 	this->program = program;
 }
 
+/*
 SkyboxRenderer::SkyboxRenderer(Program* program, Texture* texture) : AbstractRenderer(program) {
     this->texture = texture;
     texture_samplers.push_back(program->getUniformLocation("Skybox"));
@@ -71,6 +72,7 @@ SkyboxRenderer::SkyboxRenderer(Program* program, Texture* texture) : AbstractRen
     program->stopUsing();
 }
 
+
 void SkyboxRenderer::render() {
     program->use();
     glDisable(GL_DEPTH_TEST);
@@ -83,7 +85,7 @@ void SkyboxRenderer::render() {
 
     glEnable(GL_DEPTH_TEST);
 }
-
+*/
 
 Renderer::Renderer(Program* program) {
     this->program = program;
@@ -204,9 +206,7 @@ CrosshairRenderer::CrosshairRenderer() : AbstractRenderer() {
     texture_samplers.push_back(program->getUniformLocation("Crosshair"));
     aspect_ratio_ID = program->getUniformLocation("AspectRatio");
 
-    crosshair_texture = new Texture();
-    crosshair_texture->load("../Resources/crosshair.png");
-    crosshair_texture->setType(Texture::DIFFUSE);
+    TextureManager::addCrosshair("../Resources/crosshair.png");
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -224,7 +224,7 @@ void CrosshairRenderer::render() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-    glUniform1i(texture_samplers[0], crosshair_texture->getUnit());
+    glUniform1i(texture_samplers[0], GL_TEXTURE3);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glEnable(GL_DEPTH_TEST);
@@ -238,9 +238,8 @@ void CrosshairRenderer::updateSize(int width, int height) {
     program->stopUsing();
 }
 
-EnvMapRenderer::EnvMapRenderer(Program* program, Texture* texture, std::vector<float> sphere) : AbstractRenderer(program) {
-    this->texture = texture;
-    texture_samplers.push_back(program->getUniformLocation("Skybox"));
+EnvMapRenderer::EnvMapRenderer(Program* program, std::vector<float> sphere) : AbstractRenderer(program) {
+    texture_samplers.push_back(program->getUniformLocation("EnvMapSampler"));
 
     triangles = sphere.size() / 3;
     glGenBuffers(1, &sphere_VBO);
@@ -248,7 +247,7 @@ EnvMapRenderer::EnvMapRenderer(Program* program, Texture* texture, std::vector<f
     glBufferData(GL_ARRAY_BUFFER, sphere.size() * sizeof(float), &sphere[0], GL_STATIC_DRAW);
 
     program->use();
-    glUniform1i(texture_samplers[0], texture->getUnit());
+    glUniform1i(texture_samplers[0], GL_TEXTURE0);
     program->stopUsing();
 }
 

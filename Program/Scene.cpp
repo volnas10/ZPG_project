@@ -17,7 +17,7 @@
 #include "Shader.h"
 #include "Program.h"
 #include "Light.h"
-#include "Texture.h"
+#include "TextureManager.h"
 #include "FloorGenerator.h"
 #include "BezierCurve.h"
 
@@ -27,16 +27,14 @@ using namespace Assimp;
 
 
 object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
-	std::vector<Texture*> memory_textures;
-	std::vector<std::pair<object::Material, std::vector<Texture*>>> materials;
+	std::vector<object::Material> materials;
 	object::Object* object = new object::Object();
+	std::vector<aiTexture*> memory_textures;
 
 	// Load textures from memory
 	for (unsigned int t_index = 0; t_index < scene->mNumTextures; t_index++) {
 		aiTexture* texture = scene->mTextures[t_index];
-		Texture* t = new Texture();
-		t->loadFromMemory(texture);
-		memory_textures.push_back(t);
+		memory_textures.push_back(texture);
 	}
 
 	// Parse materials
@@ -45,7 +43,6 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 
 		// Extract properties from assimp material
 		object::Material my_material;
-		std::vector<Texture*> textures;
 		aiColor3D color;
 		float val;
 
@@ -56,19 +53,8 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
 			my_material.ambient_color = glm::vec4(color.r, color.g, color.b, 0);
 		}
-		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_EMISSIVE, color)) {
-			my_material.emissive_color = glm::vec4(color.r, color.g, color.b, 0);
-		}
 		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
 			my_material.specular_color = glm::vec4(color.r, color.g, color.b, 0);
-		}
-		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_TRANSPARENT, color)) {
-			my_material.transparent_color = glm::vec4(color.r, color.g, color.b, 0);
-		}
-		if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_REFLECTIVE, color)) {
-			val = 0;
-			material->Get(AI_MATKEY_REFLECTIVITY, val);
-			my_material.reflective_color = glm::vec4(color.r, color.g, color.b, val);
 		}
 		if (AI_SUCCESS == material->Get(AI_MATKEY_REFRACTI, val)) {
 			my_material.refraction_index = val;
@@ -76,48 +62,60 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		if (AI_SUCCESS == material->Get(AI_MATKEY_SHININESS, val)) {
 			my_material.shininess = val;
 		}
-		if (AI_SUCCESS == material->Get(AI_MATKEY_SHININESS_STRENGTH, val)) {
-			my_material.shininess_strength = val;
-		}
 
+		glm::vec4 has_textures(0.0f);
 		// Check if material has textures
 		for (int i = 0; i <= 21; i++) {
 			aiTextureType type = aiTextureType(i);
 			unsigned int count = material->GetTextureCount(type);
 			if (count == 0) continue;
+
+			TextureManager::TextureType t_type;
+			switch (type) {
+			case aiTextureType_DIFFUSE:
+				t_type = TextureManager::DIFFUSE;
+				has_textures.x = 1.0f;
+				break;
+			case aiTextureType_HEIGHT:
+				t_type = TextureManager::NORMAL;
+				has_textures.y = 1.0f;
+				break;
+			case aiTextureType_SPECULAR:
+				t_type = TextureManager::SPECULAR;
+				has_textures.z = 1.0f;
+				break;
+			}
+
 			aiString texture_name;
 			material->Get(AI_MATKEY_TEXTURE(type, 0), texture_name);
 
-			Texture* t;
 			// Embedded texture
 			if (texture_name.C_Str()[0] == '*') {
-				t = memory_textures[atoi(texture_name.C_Str() + 1)];
+				aiTexture* t = memory_textures[atoi(texture_name.C_Str() + 1)];
+				if (my_material.texture_id < 0) {
+					my_material.texture_id = TextureManager::addMaterial(t, t_type);
+				}
+				else {
+					TextureManager::addMaterial(my_material.texture_id, t, t_type);
+				}
 			}
 			// Texture from file
 			else {
 				aiString full_path = path;
 				full_path.Append(texture_name.C_Str());
 				stringutil::replaceChar(full_path.data, '\\', '/');
-				t = new Texture();
-				t->load(full_path.C_Str());
-			}
 
-			if (t == nullptr) continue;
-
-			if (type == aiTextureType_DIFFUSE) {
-				t->setType(Texture::DIFFUSE);
+				if (my_material.texture_id < 0) {
+					my_material.texture_id = TextureManager::addMaterial(full_path.C_Str(), t_type);
+				}
+				else {
+					TextureManager::addMaterial(my_material.texture_id, full_path.C_Str(), t_type);
+				}
 			}
-			else if (type == aiTextureType_HEIGHT) {
-				t->setType(Texture::NORMAL);
-			}
-			// With one testing model opacity is stored under normals so... I'll use it
-			else if (type == aiTextureType_NORMALS) {
-				t->setType(Texture::OPACITY);
-			}
-			textures.push_back(t);
 		}
 
-		materials.push_back(std::make_pair(my_material, textures));
+		my_material.has_textures = has_textures;
+		materials.push_back(my_material);
 	}
 
 	// Parse meshes
@@ -153,7 +151,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 				indices.push_back(face.mIndices[idx]);
 			}
 		}
-		object->addMesh(vertices, normals, uvs, tangents, bitangents, indices, materials[mesh->mMaterialIndex].first, materials[mesh->mMaterialIndex].second);
+		object->addMesh(vertices, normals, uvs, tangents, bitangents, indices, materials[mesh->mMaterialIndex]);
 	}
 
 	return object;
@@ -583,7 +581,7 @@ bool Scene::load() {
 			}
 			rendering_groups.push_back(rendering_group);
 		}
-		// Load skybox
+		/* Load skybox
 		else if (line.find("Skybox") == 0) {
 			// Load parameters
 			std::getline(description, line);
@@ -607,7 +605,7 @@ bool Scene::load() {
 				std::getline(description, line);
 			}
 		}
-
+		*/
 		// Load camera
 		else if (line.find("Camera") == 0) {
 			float fov = 70.f;
@@ -662,7 +660,7 @@ bool Scene::load() {
 			camera = new Camera(position, fov, horizontal_angle, vertical_angle, 1.77777);
 		}
 
-		// Load floor
+		/* Load floor
 		else if (line.find("Floor") == 0) {
 			Texture* texture = new Texture();
 			texture->setType(Texture::DIFFUSE);
@@ -697,9 +695,9 @@ bool Scene::load() {
 			models.push_back(obj);
 			objects.push_back(std::make_pair(obj, std::make_pair(nullptr, tmp)));
 		}
+		*/
 		// Load environment map
-		else if (line.find("Environment") == 0) {
-			Texture* hdri = new Texture();
+		else if (line.find("Environment") == 0) {;
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
 				std::stringstream sstream(line);
@@ -711,13 +709,14 @@ bool Scene::load() {
 					shaders.push_back(Shader("EnvMapVertexShader.glsl", GL_VERTEX_SHADER));
 					shaders.push_back(Shader("EnvMapFragmentShader.glsl", GL_FRAGMENT_SHADER));
 					Program* program = new Program(shaders);
-					hdri->loadHDRI((path + value).c_str());
+
+					TextureManager::addEnvMap((path + value).c_str());
 
 					// Load ico sphere
 					const aiScene* scene = importer.ReadFile("../Resources/ico_sphere.obj", NULL);
 					std::vector<float> sphere = parseVertices(scene);
 
-					EnvMapRenderer* renderer = new EnvMapRenderer(program, hdri, sphere);
+					EnvMapRenderer* renderer = new EnvMapRenderer(program, sphere);
 					programs.push_back(program);
 					other_renderers.insert(other_renderers.begin(), renderer);
 				}
