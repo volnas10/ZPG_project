@@ -41,7 +41,7 @@ namespace object {
 			Material material);
 		void bind();
 		void bindForShadows();
-		void bindUniforms(GLuint material_binding, GLuint diffuse_t, GLuint normal_t, GLuint opacity_t, GLuint has_textures);
+		void bindUniforms(GLuint material_binding);
 
 		size_t size();
 	};

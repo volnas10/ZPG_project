@@ -17,8 +17,7 @@ ShadowMapper::ShadowMapper() {
 
     // Make array for all depth maps
     glGenTextures(1, &depth_map);
-    texture_unit = Texture::reserveUnit();
-    glActiveTexture(GL_TEXTURE0 + texture_unit);
+    glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_2D_ARRAY, depth_map);
 
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24,
@@ -74,21 +73,6 @@ void ShadowMapper::useLight(Light::LightStruct light, unsigned int index) {
 
 void ShadowMapper::renderShadows(object::Mesh* mesh, size_t count) {
     glDrawElementsInstanced(GL_TRIANGLES, (GLsizei)mesh->size(), GL_UNSIGNED_INT, NULL, (GLsizei)count);
-}
-
-void ShadowMapper::useTextures(std::vector<Texture*> textures) {
-    glm::vec2 has_textures(0.0);
-    for (Texture* t : textures) {
-        if (t->getType() == Texture::DIFFUSE) {
-            glUniform1i(texture_ID, t->getUnit());
-            has_textures.x = 1.0;
-        }
-        else if (t->getType() == Texture::OPACITY) {
-            glUniform1i(opacity_ID, t->getUnit());
-            has_textures.y = 1.0;
-        }
-    }
-    glUniform2fv(has_textures_ID, 1, &has_textures[0]);
 }
 
 GLuint ShadowMapper::getUnit() {

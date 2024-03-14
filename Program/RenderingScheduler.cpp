@@ -71,7 +71,6 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 
 			for (MeshInstances meshInstances : meshes) {
 				meshInstances.mesh->bindForShadows();
-				shadow_mapper->useTextures(meshInstances.mesh->getTextures());
 				for (auto pair : meshInstances.instances) {
 					auto target = pair.second;
 					target.second->bind(transformations_idx);

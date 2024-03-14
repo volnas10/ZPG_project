@@ -90,17 +90,15 @@ void SkyboxRenderer::render() {
 Renderer::Renderer(Program* program) {
     this->program = program;
 
-    has_textures_ID = program->getUniformLocation("HasTextures");
     irradiance_ID = program->getUniformLocation("IrradianceSampler");
-    diffuse_ID = program->getUniformLocation("DiffuseTextureSampler");
-    normal_ID = program->getUniformLocation("NormalTextureSampler");
-    opacity_ID = program->getUniformLocation("OpacityTextureSampler");
     depth_map_ID = program->getUniformLocation("DepthMaps");
     use_shadows_ID = program->getUniformLocation("ShadowsOn");
 }
 
 void Renderer::prepare(int* transformations_idx, GLint depth_map_ID) {
     program->use();
+    TextureManager::bind(2);
+    glUniform1i(irradiance_ID, 1);
     if (depth_map_ID >= 0) {
         glUniform1i(this->depth_map_ID, depth_map_ID);
         glUniform1i(this->use_shadows_ID, GL_TRUE);
@@ -113,8 +111,7 @@ void Renderer::prepare(int* transformations_idx, GLint depth_map_ID) {
 }
 
 void Renderer::render(object::Mesh* mesh, size_t count) {
-    glUniform1i(irradiance_ID, 0);
-    mesh->bindUniforms(1, diffuse_ID, normal_ID, opacity_ID, has_textures_ID);
+    mesh->bindUniforms(1);
     glDrawElementsInstanced(GL_TRIANGLES, (GLsizei) mesh->size(), GL_UNSIGNED_INT, NULL, (GLsizei) count);
 
     program->stopUsing();
@@ -185,7 +182,6 @@ void DepthMapRenderer::render(GLuint depth_map_ID) {
 
     glUniform1i(sampler_ID, depth_map_ID);
 
-
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     program->stopUsing();
 }
@@ -211,6 +207,10 @@ CrosshairRenderer::CrosshairRenderer() : AbstractRenderer() {
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
+
+    program->use();
+    glUniform1i(texture_samplers[0], 3);
+    program->stopUsing();
 }
 
 void CrosshairRenderer::render() {
@@ -224,7 +224,7 @@ void CrosshairRenderer::render() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-    glUniform1i(texture_samplers[0], GL_TEXTURE3);
+    //glUniform1i(texture_samplers[0], GL_TEXTURE3);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glEnable(GL_DEPTH_TEST);
@@ -247,7 +247,7 @@ EnvMapRenderer::EnvMapRenderer(Program* program, std::vector<float> sphere) : Ab
     glBufferData(GL_ARRAY_BUFFER, sphere.size() * sizeof(float), &sphere[0], GL_STATIC_DRAW);
 
     program->use();
-    glUniform1i(texture_samplers[0], GL_TEXTURE0);
+    glUniform1i(texture_samplers[0], 1);
     program->stopUsing();
 }
 
@@ -259,7 +259,9 @@ void EnvMapRenderer::render() {
     glBindBuffer(GL_ARRAY_BUFFER, sphere_VBO);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
+    //glUniform1i(texture_samplers[0], GL_TEXTURE0);
     glDrawArrays(GL_TRIANGLES, 0, triangles);
 
     glEnable(GL_DEPTH_TEST);
+    program->stopUsing();
 }

@@ -43,6 +43,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 
 		// Extract properties from assimp material
 		object::Material my_material;
+		my_material.texture_id = -1;
 		aiColor3D color;
 		float val;
 

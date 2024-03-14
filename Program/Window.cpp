@@ -43,6 +43,9 @@ Window::Window(GLFWwindow* window) {
     for (Program* program : scene->getPrograms()) {
         camera->subscribe(program);
     }
+
+    TextureManager tm;
+    tm.init();
 }
 
 Window::~Window() {

@@ -2,13 +2,13 @@
 
 #include <glm/glm.hpp>
 #include <cstdlib>
-
+/*
 FloorGenerator::FloorGenerator(int dimension, float tile_size, std::vector<Texture*> textures) {
 	this->dimension = dimension;
 	this->tile_size = tile_size;
 	this->textures = textures;
 }
-
+*/
 object::Object* FloorGenerator::generate() {
 
 	std::vector<glm::vec3> vertices;
@@ -66,7 +66,7 @@ object::Object* FloorGenerator::generate() {
 	material.specular_color = glm::vec4(0.2, 0.2, 0.2, 1.0);
 
 	object::Object* obj = new object::Object();
-	obj->addMesh(vertices, normals, uvs, tangents, bitangents, indices, material, textures);
+	obj->addMesh(vertices, normals, uvs, tangents, bitangents, indices, material);
 
 	return obj;
 }

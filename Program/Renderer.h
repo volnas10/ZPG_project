@@ -13,7 +13,7 @@
 class Renderer {
 private:
 	Program* program;
-	GLuint irradiance_ID, diffuse_ID, normal_ID, opacity_ID, depth_map_ID, has_textures_ID, use_shadows_ID;
+	GLuint irradiance_ID, depth_map_ID, use_shadows_ID;
 public:
 	Renderer(Program* program);
 	void prepare(int* transformations_idx, GLint depth_map_ID);

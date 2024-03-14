@@ -1,4 +1,4 @@
-#version 330 core
+#version 450 core
 
 layout(location = 0) in vec3 VertexPosition;
 layout(location = 1) in vec3 VertexNormal;
@@ -13,28 +13,31 @@ out vec2 uv;
 out vec3 vertexPosition_ws;
 out vec3 normal_cs;
 out vec3 eyeDirection_cs;
-
-uniform mat4 ProjectionMatrix;
-uniform mat4 ViewMatrix;
-uniform mat4 ModelMatrix;
-uniform mat4 MeshMatrix;
-
 out vec3 normal_ws;
 
+uniform mat4 ViewMatrix;
+uniform mat4 ProjectionViewMatrix;
+
+layout(std140, binding = 0) uniform ModelMatrices{
+	mat4 model_matrix[1024];
+};
+
 void main(){
-	mat4 meshModelMatrix = ModelMatrix * MeshMatrix;
-
-	gl_Position = ProjectionMatrix * ViewMatrix * meshModelMatrix * vec4(VertexPosition, 1);
+	gl_Position = ProjectionViewMatrix * model_matrix[gl_InstanceID] * vec4(VertexPosition, 1);
 	
-	vertexPosition_ws = (meshModelMatrix * vec4(VertexPosition,1)).xyz;
+	vertexPosition_ws = (model_matrix[gl_InstanceID] * vec4(VertexPosition, 1)).xyz;
 	
-	vec3 vertexPosition_cs = ( ViewMatrix * meshModelMatrix * vec4(VertexPosition,1)).xyz;
+	vec3 vertexPosition_cs = (ViewMatrix * vec4(vertexPosition_ws, 1)).xyz;
 
-	normal_cs = ( ViewMatrix * meshModelMatrix * vec4(VertexNormal,0)).xyz;
+	mat4 modelViewMatrix = ViewMatrix * model_matrix[gl_InstanceID];
 
-	eyeDirection_cs = vec3(0,0,0) - vertexPosition_cs;
+	mat4 normalMatrix = transpose(inverse(modelViewMatrix));
 
-	normal_ws = (ModelMatrix * MeshMatrix * vec4(VertexNormal,0)).xyz;
+	normal_cs = vec3(normalMatrix * vec4(VertexNormal, 1));
+
+	eyeDirection_cs = vec3(0, 0, 0) - vertexPosition_cs;
+
+	normal_ws = (model_matrix[gl_InstanceID] * vec4(VertexNormal,0)).xyz;
 	
 	uv = VertexUV;
 

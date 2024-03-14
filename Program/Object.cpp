@@ -98,24 +98,8 @@ namespace object {
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VIO);
 	}
 
-	void Mesh::bindUniforms(GLuint material_binding, GLuint diffuse_t, GLuint normal_t, GLuint opacity_t, GLuint has_textures) {
+	void Mesh::bindUniforms(GLuint material_binding) {
 		glBindBufferBase(GL_UNIFORM_BUFFER, material_binding, material_buffer);
-
-		for (Texture* t : textures) {
-			if (t->getType() == Texture::DIFFUSE) {
-				glUniform1i(diffuse_t, t->getUnit());
-				enabled.x = 1;
-			}
-			else if (t->getType() == Texture::NORMAL) {
-				glUniform1i(normal_t, t->getUnit());
-				enabled.y = 1;
-			}
-			else if (t->getType() == Texture::OPACITY) {
-				glUniform1i(opacity_t, t->getUnit());
-				enabled.z = 1;
-			}
-		}
-		glUniform3fv(has_textures, 1, &enabled[0]);
 	}
 
 	size_t Mesh::size() {

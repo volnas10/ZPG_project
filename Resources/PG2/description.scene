@@ -1,12 +1,14 @@
 Transformation {
 	position: 0.0 0.0 0.0
+	scale: 0.2 0.2 0.2
+	rotation: -90.0 0.0 0.0
 }
 Model {
 	name: allied_avenger.obj
 }
 Object {
 	model: 0
-	transformations: [0]
+	default_transformation: 0
 }
 Shader {
 	type: vertex

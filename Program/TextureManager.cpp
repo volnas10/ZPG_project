@@ -1,7 +1,9 @@
 #include <FreeImage.h>
 #include <string>
 #include <iostream>
+#include <random>
 #include "BS_thread_pool.hpp"
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "TextureManager.h"
 #include "Util.h"
@@ -87,44 +89,55 @@ bool Texture::loadSkybox(std::string path) {
 */
 
 void PrecomputeIrradiance(float* irradiance_map, float* data, int width, int height, int map_width, int map_height, int i) {
-	int half_height = height / 2;
+	std::mt19937 gen;
+	std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+
 	for (int j = 0; j < map_width; j++) {
-		int center_x = j * (width / map_width) + map_width / 2;
-		int center_y = i * (height / map_height) + map_height / 2;
+
+		// Convert pixel to vector in space
+		float theta = (i + 0.5f) / map_height * PI;
+		float phi = (j + 0.5f) / map_width * TWO_PI;
+
+		glm::vec3 normal{
+			sinf(theta) * cosf(phi),
+			sinf(theta) * sinf(phi),
+			cosf(theta)
+		};
+		normal = glm::normalize(normal);
 
 		float irradiance[3] = { 0.0f, 0.0f, 0.0f };
 
-		// Loop over the pixels in the square around the center
-		for (int dx = -half_height; dx <= half_height; dx++) {
-			for (int dy = -half_height; dy <= half_height; dy++) {
-				// Throw away pixels outisde the circle
-				if (dx * dx + dy * dy > half_height * half_height) {
-					continue;
-				}
+		for (int s = 0; s < 100000; s++) {
+			// Sample hemisphere
+			float ksi1 = dis(gen);
+			float ksi2 = dis(gen);
 
-				// Wrap around the image
-				int x = (center_x + dx + width) % width;
-				int y = (center_y + dy + height) % height;
+			glm::vec3 sample{
+				2.0f * cosf(TWO_PI * ksi1) * sqrtf(ksi2 * (1.0f - ksi2)),
+				2.0f * sinf(TWO_PI * ksi1) * sqrtf(ksi2 * (1.0f - ksi2)),
+				1.0f - 2.0f * ksi2
+			};
 
-				// Get the pixel color
-				float* pixel = data + 3 * y * width + 3 * x;
-				float color[3] = { pixel[0], pixel[1], pixel[2] };
-
-				// Cosine-weighted importance sampling
-				float distance = sqrtf(dx * dx + dy * dy) / half_height;
-				float weight = cosf(distance * HALF_PI);
-
-				irradiance[0] += color[0] * weight;
-				irradiance[1] += color[1] * weight;
-				irradiance[2] += color[2] * weight;
+			if (glm::dot(sample, normal) < 0.0f) {
+				sample = -sample;
 			}
+
+			// Convert back to coordinates on the environment map
+			theta = acosf(sample.z);
+			phi = atan2f(sample.y, sample.x) + ((sample.y < 0.0f) ? TWO_PI : 0.0f);
+
+			int x = (phi / TWO_PI) * width;
+			int y = (theta / PI) * height;
+
+			irradiance[0] += data[3 * (y * width + x) + 0];
+			irradiance[1] += data[3 * (y * width + x) + 1];
+			irradiance[2] += data[3 * (y * width + x) + 2];
 		}
 
 		// Average by the number of samples
-		int samples = (int)(PI * (float)(half_height * half_height));
-		irradiance[0] /= samples;
-		irradiance[1] /= samples;
-		irradiance[2] /= samples;
+		irradiance[0] /= 100000;
+		irradiance[1] /= 100000;
+		irradiance[2] /= 100000;
 
 		// Add to the irradiance map
 		irradiance_map[3 * (i * map_width + j) + 0] = irradiance[0];
@@ -134,15 +147,23 @@ void PrecomputeIrradiance(float* irradiance_map, float* data, int width, int hei
 	std::cout << "Row " << i << " done" << std::endl;
 }
 
-
-int TextureManager::id_counter = 0;
-
-TextureManager& TextureManager::GetInstance() {
+TextureManager& TextureManager::getInstance() {
 	static TextureManager instance;
 	return instance;
 }
 
+void TextureManager::init() {
+	TextureManager& instance = getInstance();
+	instance.id_counter = 0;
+
+	glGenBuffers(1, &instance.buffer_ID);
+	glBindBuffer(GL_UNIFORM_BUFFER, instance.buffer_ID);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(TexturePack) * MAX_TEXTURE_BLOCKS, NULL, GL_DYNAMIC_DRAW);
+	instance.updated = true;
+}
+
 void TextureManager::addEnvMap(const char* filename) {
+	TextureManager& instance = getInstance();
 	FIBITMAP* bitmap = FreeImage_Load(FIF_EXR, filename, EXR_DEFAULT);
 
 	if (!bitmap) {
@@ -153,72 +174,13 @@ void TextureManager::addEnvMap(const char* filename) {
 	int width = FreeImage_GetWidth(bitmap);
 	int height = FreeImage_GetHeight(bitmap);
 
-	// Find if irradiance map exists
-	std::string path(filename);
-	int slash = path.rfind("/");
-	path.replace(slash + 1, path.size() - slash, "irradiance_map.exr");
-	FIBITMAP* ir_bitmap = FreeImage_Load(FIF_EXR, path.c_str(), EXR_DEFAULT);
-
-	int map_width = 64;
-	int map_height = 32;
-	FIBITMAP* ir_bitmap32 = nullptr;
-	// Load map
-	if (ir_bitmap) {
-		ir_bitmap32 = FreeImage_ConvertToRGBF(ir_bitmap);
-		FreeImage_Unload(ir_bitmap);
-	}
-	// Generate map
-	else {
-		std::cout << "No irradiance map found, precomputing..." << std::endl;
-		float* raw_data = reinterpret_cast<float*>(FreeImage_GetBits(bitmap));
-		float* irradiance_map = new float[map_width * map_height * 3];
-
-		int threads = std::thread::hardware_concurrency();
-		BS::thread_pool pool(threads);
-		for (int i = 0; i < map_height; i++) {
-			pool.push_task(PrecomputeIrradiance, irradiance_map, raw_data, width, height, map_width, map_height, i);
-		}
-
-		pool.wait_for_tasks();
-
-		// Save the irradiance map
-		ir_bitmap32 = FreeImage_AllocateT(FIT_RGBF, map_width, map_height);
-		float* dst = reinterpret_cast<float*>(FreeImage_GetBits(ir_bitmap32));
-		for (int i = 0; i < map_width * map_height * 3; i++) {
-			*dst++ = irradiance_map[i];
-		}
-
-		if (!FreeImage_Save(FIF_EXR, ir_bitmap32, path.c_str(), EXR_DEFAULT)) {
-			// Handle error: failed to save EXR file
-			std::cout << "Could not save irradiance map" << std::endl;
-		}
-
-		delete[] irradiance_map;
-	}
-
-	TextureManager& instance = GetInstance();
-
-	BYTE* data = FreeImage_GetBits(ir_bitmap32);
-	glGenTextures(1, &instance.irradiance_map);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, instance.irradiance_map);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, map_width, map_height, 0, GL_RGBA, GL_FLOAT, data);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	// Free FreeImage data
-	FreeImage_Unload(ir_bitmap32);
-
 	// Convert image to 32-bit float format (RGBA)
 	FIBITMAP* bitmap32 = FreeImage_ConvertToRGBAF(bitmap);
 	FreeImage_Unload(bitmap);
 
-	data = FreeImage_GetBits(bitmap32);
+	BYTE* data = FreeImage_GetBits(bitmap32);
 
 	glGenTextures(1, &instance.env_map);
-	// Bind to texture unit and increment counter
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, instance.env_map);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, data);
@@ -230,6 +192,9 @@ void TextureManager::addEnvMap(const char* filename) {
 
 	// Free FreeImage data
 	FreeImage_Unload(bitmap32);
+
+
+
 }
 
 void TextureManager::addCrosshair(const char* filename) {
@@ -279,7 +244,6 @@ void TextureManager::addCrosshair(const char* filename) {
 
 	GLuint crosshair;
 	glGenTextures(1, &crosshair);
-	// Bind to texture unit and increment counter
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, crosshair);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, gl_color_type, GL_UNSIGNED_BYTE, data);
@@ -294,15 +258,17 @@ void TextureManager::addCrosshair(const char* filename) {
 }
 
 int TextureManager::addMaterial(aiTexture* t, TextureType type) {
-	TextureManager& instance = GetInstance();
+	TextureManager& instance = getInstance();
 	instance.texture_packs.push_back(TexturePack());
-	return addMaterial(id_counter++, t, type);
+	int id = instance.id_counter++;
+	return addMaterial(id, t, type);
 }
 
 int TextureManager::addMaterial(const char* filename, TextureType type) {
-	TextureManager& instance = GetInstance();
+	TextureManager& instance = getInstance();
 	instance.texture_packs.push_back(TexturePack());
-	return addMaterial(id_counter++, filename, type);
+	int id = instance.id_counter++;
+	return addMaterial(id, filename, type);
 }
 
 int TextureManager::addMaterial(int material_id, aiTexture* t, TextureType type) {
@@ -368,7 +334,7 @@ int TextureManager::addMaterial(int material_id, aiTexture* t, TextureType type)
 
 	FreeImage_Unload(dib);
 
-	TextureManager& instance = GetInstance();
+	TextureManager& instance = getInstance();
 	if (type == TextureType::DIFFUSE) {
 		instance.texture_packs[material_id].diffuse = handle;
 	}
@@ -448,7 +414,7 @@ int TextureManager::addMaterial(int material_id, const char* filename, TextureTy
 
 	FreeImage_Unload(dib);
 
-	TextureManager& instance = GetInstance();
+	TextureManager& instance = getInstance();
 	if (type == TextureType::DIFFUSE) {
 		instance.texture_packs[material_id].diffuse = handle;
 	}
@@ -460,4 +426,15 @@ int TextureManager::addMaterial(int material_id, const char* filename, TextureTy
 	}
 
 	return material_id;
+}
+
+void TextureManager::bind(int block_idx) {
+	TextureManager& instance = getInstance();
+	if (instance.texture_packs.size() != 0 && instance.updated) {
+		glBindBuffer(GL_UNIFORM_BUFFER, instance.buffer_ID);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, instance.texture_packs.size() * sizeof(TextureManager::TexturePack), &instance.texture_packs[0]);
+		instance.updated = false;
+	}
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, block_idx, instance.buffer_ID);
 }

@@ -1,4 +1,9 @@
-#version 330 core
+#version 460 core
+#extension GL_ARB_bindless_texture : require
+#extension GL_ARB_gpu_shader_int64 : require
+#extension GL_NV_uniform_buffer_std430_layout : enable
+
+#define PI 3.14159265359
 
 in vec2 uv;
 in vec3 vertexPosition_ws;
@@ -8,40 +13,51 @@ in vec3 normal_ws;
 
 out vec4 color;
 
-uniform sampler2D EnvMapSampler;
 uniform sampler2D IrradianceSampler;
-uniform sampler2D TextureSampler;
 
-layout(std140) uniform Material {
+uniform sampler2DArrayShadow DepthMaps;
+uniform bool ShadowsOn;
+
+layout(std140, binding = 1) uniform Material {
+	vec4 has_textures; // diffuse, specular, normal
 	vec4 diffuse_color;
 	vec4 specular_color;
 	vec4 ambient_color;
-	vec4 emissive_color;
-	vec4 transparent_color; // r, g, b | opacity
-	vec4 reflective_color; // r, g, b | reflectivity
 	float refraction_index;
 	float shininess;
-	float shininess_strength;
-	uint diffuse_texture;
-	uint normal_map;
-	uint opacity_map;
+	int texture_id;
 } material;
+
+struct TexturePack {
+	uint64_t diffuse_texture;
+	uint64_t specular_map;
+	uint64_t normal_map;
+	uint64_t brdf_integration_map;
+};
+
+layout(std430, binding = 2) uniform TexturePacks{
+	TexturePack texturePacks[32];
+};
 
 void main(){
 
-	float ir_u = 0.5 + atan(normal_ws.z, normal_ws.x) / (2 * 3.14159265359);
-	float ir_v = 0.5 - asin(normal_ws.y) / 3.14159265359;
-	vec3 irradiance = texture(IrradianceSampler, vec2(ir_u, 1 - ir_v)).rgb;
+	float u = 0.5 + atan(normal_ws.z, normal_ws.x) / (2 * PI);
+	float v = 0.5 - asin(normal_ws.y) / PI;
+
+	// Sample HDR texture
+	vec3 irradiance = texture(IrradianceSampler, vec2(u, 1 - v)).rgb;
 
 	// If material has texture, use it
 	vec4 diffuseColor;
-	if (material.diffuse_texture > uint(0)) {
-		diffuseColor = texture(TextureSampler, uv);
+	if (material.has_textures[0] > uint(0)) {
+		diffuseColor = texture(sampler2D(texturePacks[material.texture_id].diffuse_texture), uv);
 	}
 	else {
 		diffuseColor = material.diffuse_color;
 	}
-	
-	color.rgb = material.ambient_color.rgb + diffuseColor.rgb * irradiance;
+	vec3 ambientColor = diffuseColor.rgb * 0.05;
+	color.rgb = ambientColor + diffuseColor.rgb * irradiance * 0.95;
 	color.a = diffuseColor.a;
+
+	color.a = 1.0;
 }
