@@ -107,31 +107,36 @@ void PrecomputeIrradiance(float* irradiance_map, float* data, int width, int hei
 
 		float irradiance[3] = { 0.0f, 0.0f, 0.0f };
 
+		glm::vec3 o2 = (abs(normal.x) > abs(normal.z)) ? glm::vec3(normal.y, -normal.x, 0.0f) : glm::vec3(0.0f, normal.z, -normal.y);
+		o2 = glm::normalize(o2);
+		glm::vec3 o1 = glm::normalize(glm::cross(o2, normal));
+		glm::mat3 T = glm::mat3(o1, o2, normal);
+
 		for (int s = 0; s < 100000; s++) {
 			// Sample hemisphere
 			float ksi1 = dis(gen);
 			float ksi2 = dis(gen);
 
 			glm::vec3 sample{
-				2.0f * cosf(TWO_PI * ksi1) * sqrtf(ksi2 * (1.0f - ksi2)),
-				2.0f * sinf(TWO_PI * ksi1) * sqrtf(ksi2 * (1.0f - ksi2)),
-				1.0f - 2.0f * ksi2
+				cosf(TWO_PI * ksi1) * sqrtf(1.0f - ksi2),
+				sinf(TWO_PI * ksi1) * sqrtf(1.0f - ksi2),
+				sqrtf(ksi2)
 			};
-
-			if (glm::dot(sample, normal) < 0.0f) {
-				sample = -sample;
-			}
+			sample = glm::normalize(sample);
+			float pdf = sample.z / PI;
+			sample = T * sample;
 
 			// Convert back to coordinates on the environment map
-			theta = acosf(sample.z);
-			phi = atan2f(sample.y, sample.x) + ((sample.y < 0.0f) ? TWO_PI : 0.0f);
+			const float theta = acosf(sample.z);
+			const float phi = atan2f(sample.y, sample.x) + ((sample.y < 0.0f) ? TWO_PI : 0.0f);
 
-			int x = (phi / TWO_PI) * width;
-			int y = (theta / PI) * height;
+			int x = int((phi / TWO_PI) * width + 0.5f) % width;
+			int y = int((theta / PI) * height + 0.5f) % height;
 
-			irradiance[0] += data[3 * (y * width + x) + 0];
-			irradiance[1] += data[3 * (y * width + x) + 1];
-			irradiance[2] += data[3 * (y * width + x) + 2];
+			float costheta = glm::dot(normal, sample);
+			irradiance[0] += data[3 * (y * width + x) + 0] * costheta * (1.0f / pdf);
+			irradiance[1] += data[3 * (y * width + x) + 1] * costheta * (1.0f / pdf);
+			irradiance[2] += data[3 * (y * width + x) + 2] * costheta * (1.0f / pdf);
 		}
 
 		// Average by the number of samples
@@ -174,27 +179,70 @@ void TextureManager::addEnvMap(const char* filename) {
 	int width = FreeImage_GetWidth(bitmap);
 	int height = FreeImage_GetHeight(bitmap);
 
-	// Convert image to 32-bit float format (RGBA)
-	FIBITMAP* bitmap32 = FreeImage_ConvertToRGBAF(bitmap);
-	FreeImage_Unload(bitmap);
-
-	BYTE* data = FreeImage_GetBits(bitmap32);
+	BYTE* data = FreeImage_GetBits(bitmap);
 
 	glGenTextures(1, &instance.env_map);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, instance.env_map);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_FLOAT, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
+	// Find if irradiance map exists
+	std::string path(filename);
+	int slash = path.rfind("/");
+	path.replace(slash + 1, path.size() - slash, "irradiance_map.exr");
+	FIBITMAP* ir_bitmap = FreeImage_Load(FIF_EXR, path.c_str(), EXR_DEFAULT);
+
+	int map_width = 64;
+	int map_height = 32;
+	float* irradiance_map = new float[map_width * map_height * 3];
+
+	// Load map
+	if (!ir_bitmap) {
+		std::cout << "No irradiance map found, precomputing..." << std::endl;
+		float* raw_data = reinterpret_cast<float*>(FreeImage_GetBits(bitmap));
+		float* irradiance_map = new float[map_width * map_height * 3];
+
+		int threads = std::thread::hardware_concurrency();
+		BS::thread_pool pool(threads);
+		for (int i = 0; i < map_height; i++) {
+			pool.push_task(PrecomputeIrradiance, irradiance_map, raw_data, width, height, map_width, map_height, i);
+		}
+		pool.wait_for_tasks();
+		// Save the irradiance map
+		FIBITMAP* ir_bitmap = FreeImage_AllocateT(FIT_RGBF, map_width, map_height);
+		float* dst = reinterpret_cast<float*>(FreeImage_GetBits(ir_bitmap));
+		for (int i = 0; i < map_width * map_height * 3; i++) {
+			*dst++ = irradiance_map[i];
+		}
+
+		if (!FreeImage_Save(FIF_EXR, ir_bitmap, path.c_str(), EXR_DEFAULT)) {
+			// Handle error: failed to save EXR file
+			std::cout << "Could not save irradiance map" << std::endl;
+		}
+
+	}
+
+	delete[] irradiance_map;
+
+	data = FreeImage_GetBits(ir_bitmap);
+
+	glGenTextures(1, &instance.env_map);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, instance.irradiance_map);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, map_width, map_height, 0, GL_RGB, GL_FLOAT, data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
 	// Free FreeImage data
-	FreeImage_Unload(bitmap32);
-
-
-
+	FreeImage_Unload(bitmap);
+	FreeImage_Unload(ir_bitmap);
 }
 
 void TextureManager::addCrosshair(const char* filename) {

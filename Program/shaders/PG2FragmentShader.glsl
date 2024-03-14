@@ -41,8 +41,8 @@ layout(std430, binding = 2) uniform TexturePacks{
 
 void main(){
 
-	float u = 0.5 + atan(normal_ws.z, normal_ws.x) / (2 * PI);
-	float v = 0.5 - asin(normal_ws.y) / PI;
+	float u = atan(normal_ws.z, normal_ws.x) / (2 * PI);
+	float v = acos(normal_ws.y) / PI;
 
 	// Sample HDR texture
 	vec3 irradiance = texture(IrradianceSampler, vec2(u, 1 - v)).rgb;
@@ -56,7 +56,7 @@ void main(){
 		diffuseColor = material.diffuse_color;
 	}
 	vec3 ambientColor = diffuseColor.rgb * 0.05;
-	color.rgb = ambientColor + diffuseColor.rgb * irradiance * 0.95;
+	color.rgb = ambientColor + diffuseColor.rgb * irradiance * 0.5;
 	color.a = diffuseColor.a;
 
 	color.a = 1.0;
