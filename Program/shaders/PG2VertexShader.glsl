@@ -14,6 +14,7 @@ out vec3 vertexPosition_ws;
 out vec3 normal_cs;
 out vec3 eyeDirection_cs;
 out vec3 normal_ws;
+out vec3 eyeDirection_ws;
 
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionViewMatrix;
@@ -33,12 +34,14 @@ void main(){
 
 	mat4 normalMatrix = transpose(inverse(modelViewMatrix));
 
-	normal_cs = vec3(normalMatrix * vec4(VertexNormal, 1));
+	normal_cs = normalize(vec3(normalMatrix * vec4(VertexNormal, 1)));
 
-	eyeDirection_cs = vec3(0, 0, 0) - vertexPosition_cs;
+	eyeDirection_cs = normalize(vec3(0, 0, 0) - vertexPosition_cs);
 
-	normal_ws = (model_matrix[gl_InstanceID] * vec4(VertexNormal,0)).xyz;
+	normal_ws = normalize(mat3(inverse(ViewMatrix)) * normal_cs);
 	
+	eyeDirection_ws = normalize(mat3(inverse(ViewMatrix)) * eyeDirection_cs);
+
 	uv = VertexUV;
 
 }

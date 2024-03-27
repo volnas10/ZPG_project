@@ -29,12 +29,12 @@ private:
 	GLuint env_map;
 	GLuint irradiance_map;
 	GLuint prefiltered_map;
+	GLuint brdf_integration_map;
 	GLuint crosshair;
 	struct TexturePack {
 		GLuint64 diffuse;
 		GLuint64 specular;
 		GLuint64 normal;
-		GLuint64 brdf_integration_map;
 	};
 	std::vector<TexturePack> texture_packs;
 	bool updated;

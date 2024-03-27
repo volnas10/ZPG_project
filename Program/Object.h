@@ -21,8 +21,10 @@ namespace object {
 		glm::vec4 diffuse_color;
 		glm::vec4 specular_color;
 		glm::vec4 ambient_color;
+		float roughness;
 		float refraction_index;
 		float shininess;
+		float metallic;
 		int texture_id;
 	};
 # pragma pack(pop)

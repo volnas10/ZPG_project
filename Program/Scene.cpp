@@ -44,6 +44,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		// Extract properties from assimp material
 		object::Material my_material;
 		my_material.texture_id = -1;
+		my_material.metallic = 0.0f;
 		aiColor3D color;
 		float val;
 
@@ -62,6 +63,10 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		}
 		if (AI_SUCCESS == material->Get(AI_MATKEY_SHININESS, val)) {
 			my_material.shininess = val;
+			my_material.roughness = 1 - (sqrtf(val) / 30);
+		}
+		if (AI_SUCCESS == material->Get(AI_MATKEY_METALLIC_FACTOR, val)) {
+			my_material.metallic = val;
 		}
 
 		glm::vec4 has_textures(0.0f);

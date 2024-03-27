@@ -91,6 +91,8 @@ Renderer::Renderer(Program* program) {
     this->program = program;
 
     irradiance_ID = program->getUniformLocation("IrradianceSampler");
+    prefiltered_map_ID = program->getUniformLocation("PrefilteredMapSampler");
+    brdf_ID = program->getUniformLocation("BRDFSampler");
     depth_map_ID = program->getUniformLocation("DepthMaps");
     use_shadows_ID = program->getUniformLocation("ShadowsOn");
 }
@@ -99,6 +101,8 @@ void Renderer::prepare(int* transformations_idx, GLint depth_map_ID) {
     program->use();
     TextureManager::bind(2);
     glUniform1i(irradiance_ID, 1);
+    glUniform1i(prefiltered_map_ID, 2);
+    glUniform1i(brdf_ID, 3);
     if (depth_map_ID >= 0) {
         glUniform1i(this->depth_map_ID, depth_map_ID);
         glUniform1i(this->use_shadows_ID, GL_TRUE);
@@ -209,7 +213,7 @@ CrosshairRenderer::CrosshairRenderer() : AbstractRenderer() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
 
     program->use();
-    glUniform1i(texture_samplers[0], 3);
+    glUniform1i(texture_samplers[0], 4);
     program->stopUsing();
 }
 

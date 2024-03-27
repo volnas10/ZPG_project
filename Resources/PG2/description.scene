@@ -1,10 +1,11 @@
 Transformation {
 	position: 0.0 0.0 0.0
-	scale: 0.2 0.2 0.2
+	scale: 0.1 0.1 0.1
 	rotation: -90.0 0.0 0.0
+	rotation: 0.0 180.0 0.0
 }
 Model {
-	name: allied_avenger.obj
+	name: 6887_allied_avenger_gi2.obj
 }
 Object {
 	model: 0

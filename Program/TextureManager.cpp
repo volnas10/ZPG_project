@@ -149,7 +149,70 @@ void PrecomputeIrradiance(float* irradiance_map, float* data, int width, int hei
 		irradiance_map[3 * (i * map_width + j) + 1] = irradiance[1];
 		irradiance_map[3 * (i * map_width + j) + 2] = irradiance[2];
 	}
-	std::cout << "Row " << i << " done" << std::endl;
+}
+
+void PrecomputePrefiltered(float* prefiltered_map, float* data, int width, int height, int map_width, int map_height, float roughness, int i, int samples) {
+	// Convert shininess to roughness
+	float alpha_sq = roughness * roughness;
+	std::mt19937 gen;
+	std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+	for (int j = 0; j < map_width; j++) {
+
+		// Convert pixel to vector in space
+		float theta = (i + 0.5f) / map_height * PI;
+		float phi = (j + 0.5f) / map_width * TWO_PI;
+
+		glm::vec3 normal{
+			sinf(theta) * cosf(phi),
+			sinf(theta) * sinf(phi),
+			cosf(theta)
+		};
+		normal = glm::normalize(normal);
+
+		glm::vec3 o2 = (abs(normal.x) > abs(normal.z)) ? glm::vec3(normal.y, -normal.x, 0.0f) : glm::vec3(0.0f, normal.z, -normal.y);
+		o2 = glm::normalize(o2);
+		glm::vec3 o1 = glm::normalize(glm::cross(o2, normal));
+		glm::mat3 T = glm::mat3(o1, o2, normal);
+
+		float pixel[3] = { 0.0f, 0.0f, 0.0f };
+		for (int s = 0; s < samples; s++) {
+			float ksi1 = dis(gen);
+			float ksi2 = dis(gen);
+			float theta_n = atanf(alpha_sq * sqrtf(ksi1 / (1 - ksi1)));
+			float tmp = acosf(sqrtf((1 - ksi1) / (ksi1 * (alpha_sq - 1) + 1)));
+			float costheta_n = cosf(theta_n);
+			float phi_n = TWO_PI * ksi2;
+
+			glm::vec3 sample{
+				sin(theta_n) * cos(phi_n),
+				sin(theta_n) * sin(phi_n),
+				costheta_n,
+			};
+			sample = glm::normalize(sample);
+			sample = T * sample;
+
+			// Convert back to coordinates on the environment map
+			const float theta = acosf(sample.z);
+			const float phi = atan2f(sample.y, sample.x) + ((sample.y < 0.0f) ? TWO_PI : 0.0);
+
+			int x = int((phi / TWO_PI) * width + 0.5f) % width;
+			int y = int((theta / PI) * height + 0.5f) % height;
+
+			float costheta = glm::dot(normal, sample);
+			pixel[0] += data[3 * (y * width + x) + 0];
+			pixel[1] += data[3 * (y * width + x) + 1];
+			pixel[2] += data[3 * (y * width + x) + 2];
+
+		}
+		// Average by the number of samples
+		pixel[0] /= samples;
+		pixel[1] /= samples;
+		pixel[2] /= samples;
+
+		prefiltered_map[3 * (i * map_width + j) + 0] = pixel[0];
+		prefiltered_map[3 * (i * map_width + j) + 1] = pixel[1];
+		prefiltered_map[3 * (i * map_width + j) + 2] = pixel[2];
+	}
 }
 
 TextureManager& TextureManager::getInstance() {
@@ -165,9 +228,34 @@ void TextureManager::init() {
 	glBindBuffer(GL_UNIFORM_BUFFER, instance.buffer_ID);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(TexturePack) * MAX_TEXTURE_BLOCKS, NULL, GL_DYNAMIC_DRAW);
 	instance.updated = true;
+
+	// Load brdf integration map
+	FIBITMAP* bitmap = FreeImage_Load(FIF_EXR, "../Resources/brdf_integration_map_ct_ggx.exr", EXR_DEFAULT);
+	//FIBITMAP* bitmap = FreeImage_Load(FIF_PNG, "../Resources/brdf_integration_map_ct_ggx.png");
+	if (!bitmap) {
+		std::cerr << "Failed to load BRDF integration map: " << std::endl;
+
+
+	}
+
+	int width = FreeImage_GetWidth(bitmap);
+	int height = FreeImage_GetHeight(bitmap);
+	BYTE* data = FreeImage_GetBits(bitmap);
+
+	glGenTextures(1, &instance.brdf_integration_map);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, instance.brdf_integration_map);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGBA, GL_FLOAT, data);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	FreeImage_Unload(bitmap);
 }
 
 void TextureManager::addEnvMap(const char* filename) {
+	// Loading environmental map
 	TextureManager& instance = getInstance();
 	FIBITMAP* bitmap = FreeImage_Load(FIF_EXR, filename, EXR_DEFAULT);
 
@@ -175,7 +263,6 @@ void TextureManager::addEnvMap(const char* filename) {
 		std::cerr << "Failed to load environment map: " << filename << std::endl;
 	}
 
-	// Get image width and height
 	int width = FreeImage_GetWidth(bitmap);
 	int height = FreeImage_GetHeight(bitmap);
 
@@ -187,7 +274,6 @@ void TextureManager::addEnvMap(const char* filename) {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -201,7 +287,7 @@ void TextureManager::addEnvMap(const char* filename) {
 	int map_height = 32;
 	float* irradiance_map = new float[map_width * map_height * 3];
 
-	// Load map
+	// If not, precompute it
 	if (!ir_bitmap) {
 		std::cout << "No irradiance map found, precomputing..." << std::endl;
 		float* raw_data = reinterpret_cast<float*>(FreeImage_GetBits(bitmap));
@@ -221,7 +307,6 @@ void TextureManager::addEnvMap(const char* filename) {
 		}
 
 		if (!FreeImage_Save(FIF_EXR, ir_bitmap, path.c_str(), EXR_DEFAULT)) {
-			// Handle error: failed to save EXR file
 			std::cout << "Could not save irradiance map" << std::endl;
 		}
 
@@ -231,18 +316,96 @@ void TextureManager::addEnvMap(const char* filename) {
 
 	data = FreeImage_GetBits(ir_bitmap);
 
-	glGenTextures(1, &instance.env_map);
+	glGenTextures(1, &instance.irradiance_map);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, instance.irradiance_map);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, map_width, map_height, 0, GL_RGB, GL_FLOAT, data);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	// Free FreeImage data
-	FreeImage_Unload(bitmap);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	FreeImage_Unload(ir_bitmap);
+
+	// Find if prefiltered map exists
+	std::vector<std::string> names = {
+		"prefiltered_env_map_001_2048.exr", "prefiltered_env_map_166_1024.exr",
+		"prefiltered_env_map_333_512.exr", "prefiltered_env_map_500_256.exr",
+		"prefiltered_env_map_666_128.exr", "prefiltered_env_map_833_64.exr",
+		"prefiltered_env_map_999_32.exr"
+	};
+
+	glGenTextures(1, &instance.prefiltered_map);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, instance.prefiltered_map);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 6);
+
+	bool prefiltered_found = true;
+	int levels = names.size();
+	for (int i = 0; i < levels; i++) {
+		path.replace(slash + 1, path.size() - path.rfind("/"), names[i]);
+		FIBITMAP* prefiltered_bitmap = FreeImage_Load(FIF_EXR, path.c_str(), EXR_DEFAULT);
+		if (!prefiltered_bitmap) {
+			std::cout << "No prefiltered map found, precomputing..." << std::endl;
+			prefiltered_found = false;
+			break;
+		}
+
+		// Load prefiltered map
+		int prefiltered_width = FreeImage_GetWidth(prefiltered_bitmap);
+		int prefiltered_height = FreeImage_GetHeight(prefiltered_bitmap);
+		data = FreeImage_GetBits(prefiltered_bitmap);
+
+		glTexImage2D(GL_TEXTURE_2D, i, GL_RGB32F, prefiltered_width, prefiltered_height, 0, GL_RGB, GL_FLOAT, data);
+
+		FreeImage_Unload(prefiltered_bitmap);
+	}
+
+	if (!prefiltered_found) {
+		float* raw_data = reinterpret_cast<float*>(FreeImage_GetBits(bitmap));
+		std::vector<float> alphas{ 0.001f, 0.16666f, 0.33333f, 0.5f, 0.66666f, 0.83333f, 0.999f };
+
+		int threads = std::thread::hardware_concurrency();
+		BS::thread_pool pool(threads);
+		int prefiltered_width = 2048;
+		int prefiltered_height = 1024;
+		float* prefiltered_map = new float[prefiltered_width * prefiltered_height * 3];
+		// Save the prefiltered map
+		int samples = 1500;
+		for (int level = 0; level < levels; level++) {
+			for (int i = 0; i < prefiltered_height; i++) {
+				pool.push_task(PrecomputePrefiltered, prefiltered_map, raw_data, width, height, prefiltered_width, prefiltered_height, alphas[level], i, samples);
+			}
+			pool.wait_for_tasks();
+			samples *= 4;
+
+			FIBITMAP* prefiltered_bitmap = FreeImage_AllocateT(FIT_RGBF, prefiltered_width, prefiltered_height);
+			float* dst = reinterpret_cast<float*>(FreeImage_GetBits(prefiltered_bitmap));
+			for (int j = 0; j < prefiltered_width * prefiltered_height * 3; j++) {
+				*dst++ = prefiltered_map[j];
+			}
+
+			if (!FreeImage_Save(FIF_EXR, prefiltered_bitmap, path.replace(slash + 1, path.size() - path.rfind("/"), names[level]).c_str(), EXR_DEFAULT)) {
+				std::cout << "Could not save prefiltered map" << std::endl;
+				break;
+			}
+
+			data = FreeImage_GetBits(prefiltered_bitmap);
+			glTexImage2D(GL_TEXTURE_2D, level, GL_RGB32F, prefiltered_width, prefiltered_height, 0, GL_RGB, GL_FLOAT, data);
+
+			FreeImage_Unload(prefiltered_bitmap);
+			std::memset(prefiltered_map, 0, prefiltered_width * prefiltered_height * sizeof(float));
+			prefiltered_width /= 2;
+			prefiltered_height /= 2;
+			std::cout << "Level " << level << " of prefiltered map done" << std::endl;
+		}
+		delete[] prefiltered_map;
+	}
+	FreeImage_Unload(bitmap);
 }
 
 void TextureManager::addCrosshair(const char* filename) {
@@ -292,7 +455,7 @@ void TextureManager::addCrosshair(const char* filename) {
 
 	GLuint crosshair;
 	glGenTextures(1, &crosshair);
-	glActiveTexture(GL_TEXTURE3);
+	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, crosshair);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, gl_color_type, GL_UNSIGNED_BYTE, data);
 
