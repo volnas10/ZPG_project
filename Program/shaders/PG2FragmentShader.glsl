@@ -10,7 +10,7 @@ in vec3 vertexPosition_ws;
 in vec3 normal_cs;
 in vec3 eyeDirection_cs;
 in vec3 normal_ws;
-in vec3 eyeDirection_ws;
+flat in vec3 eyePosition_ws;
 
 out vec4 color;
 
@@ -22,7 +22,7 @@ uniform sampler2DArrayShadow DepthMaps;
 uniform bool ShadowsOn;
 
 layout(std140, binding = 1) uniform Material {
-	vec4 has_textures; // diffuse, specular, normal
+	vec4 has_textures; // diffuse, specular, normal, rma
 	vec4 diffuse_color;
 	vec4 specular_color;
 	vec4 ambient_color;
@@ -37,6 +37,7 @@ struct TexturePack {
 	uint64_t diffuse_texture;
 	uint64_t specular_map;
 	uint64_t normal_map;
+	uint64_t rma_map;
 };
 
 layout(std430, binding = 2) uniform TexturePacks{
@@ -45,8 +46,9 @@ layout(std430, binding = 2) uniform TexturePacks{
 
 void main(){
 	vec3 normal = normalize(normal_ws);
-	vec3 eye_direction = normalize(eyeDirection_ws);
-	float cos_theta = dot(normal_cs, eyeDirection_cs);
+	vec3 eye_direction = normalize(vertexPosition_ws - eyePosition_ws);
+	//vec3 eye_direction = normalize(gl_FragCoord.xyz - )
+	float cos_theta = dot(normal_ws, eyeDirection_ws);
 	if (cos_theta < 0) {
 		normal = -normal;
 		cos_theta = -cos_theta;
@@ -73,19 +75,30 @@ void main(){
 	else {
 		specularColor = material.specular_color.rgb;
 	}
-	
-	vec2 brdf = texture(BRDFSampler, vec2(cos_theta, 1 - material.roughness)).rg;
-	vec3 F0 = mix(vec3(0.04), diffuseColor, material.metallic);
+
+	float roughness = material.roughness;
+	float metallic = material.metallic;
+	float ao = 1.0;
+	if (material.has_textures[3] > uint(0)) {
+		vec3 rma = texture(sampler2D(texturePacks[material.texture_id].rma_map), uv).rgb;
+		roughness = rma.r;
+		metallic = rma.g;
+		ao = rma.b;
+	}
+
+	vec2 brdf = texture(BRDFSampler, vec2(cos_theta, roughness)).rg;
+	vec3 F0 = mix(vec3(0.04), diffuseColor, metallic);
 	vec3 F = F0 + (vec3(1.0) - F0) * pow(1 - cos_theta, 5);
-	vec3 Fd = (vec3(1.0) - F * (1 - material.metallic));
+	vec3 Fd = (vec3(1.0) - F) * (1 - metallic);
 
 	vec3 diffuse_part = Fd * (diffuseColor / PI) * irradiance;
 	vec3 reflected = reflect(-eye_direction, normal);
 	float ref_u = atan(reflected.z, reflected.x) / (2 * PI);
 	float ref_v = acos(reflected.y) / PI;
-	vec3 specular_part = textureLod(PrefilteredMapSampler, vec2(ref_u, 1 - ref_v), 6.0 * material.roughness).rgb;
+	vec3 specular_part = textureLod(PrefilteredMapSampler, vec2(ref_u, 1 - ref_v), 6.0 * roughness).rgb;
 
 	vec3 ambientColor = diffuseColor.rgb * 0.05;
-	color.rgb = diffuse_part + (F0 * brdf.r + brdf.g) * specular_part;
+	color.rgb = diffuse_part + (F0 * brdf.r + brdf.g) * specular_part * ao;
+	color.rgb = vec3(cos_theta);
 	color.a = 1.0;
 }

@@ -555,6 +555,9 @@ int TextureManager::addMaterial(int material_id, aiTexture* t, TextureType type)
 	else if (type == TextureType::SPECULAR) {
 		instance.texture_packs[material_id].specular = handle;
 	}
+	else if (type == TextureType::RMA) {
+		instance.texture_packs[material_id].rma = handle;
+	}
 
 	return material_id;
 }

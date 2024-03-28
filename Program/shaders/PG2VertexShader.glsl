@@ -12,9 +12,9 @@ layout(location = 2) in vec2 VertexUV;
 out vec2 uv;
 out vec3 vertexPosition_ws;
 out vec3 normal_cs;
-out vec3 eyeDirection_cs;
+out vec4 eyeDirection_cs;
 out vec3 normal_ws;
-out vec3 eyeDirection_ws;
+flat out vec3 eyePosition_ws;
 
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionViewMatrix;
@@ -28,7 +28,7 @@ void main(){
 	
 	vertexPosition_ws = (model_matrix[gl_InstanceID] * vec4(VertexPosition, 1)).xyz;
 	
-	vec3 vertexPosition_cs = (ViewMatrix * vec4(vertexPosition_ws, 1)).xyz;
+	vec4 vertexPosition_cs = (ViewMatrix * vec4(vertexPosition_ws, 1));
 
 	mat4 modelViewMatrix = ViewMatrix * model_matrix[gl_InstanceID];
 
@@ -40,10 +40,9 @@ void main(){
 
 	normal_ws = normalize(mat3(inverse(ViewMatrix)) * normal_cs);
 	
-	eyeDirection_ws = normalize(mat3(inverse(ViewMatrix)) * eyeDirection_cs);
+	eyePosition_ws = vec3(inverse(ViewMatrix)[3]);
 
 	uv = VertexUV;
-
 }
 
 

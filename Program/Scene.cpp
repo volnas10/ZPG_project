@@ -78,18 +78,22 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 
 			TextureManager::TextureType t_type;
 			switch (type) {
-			case aiTextureType_DIFFUSE:
-				t_type = TextureManager::DIFFUSE;
-				has_textures.x = 1.0f;
-				break;
-			case aiTextureType_HEIGHT:
-				t_type = TextureManager::NORMAL;
-				has_textures.y = 1.0f;
-				break;
-			case aiTextureType_SPECULAR:
-				t_type = TextureManager::SPECULAR;
-				has_textures.z = 1.0f;
-				break;
+				case aiTextureType_DIFFUSE:
+					t_type = TextureManager::DIFFUSE;
+					has_textures.x = 1.0f;
+					break;
+				case aiTextureType_HEIGHT:
+					t_type = TextureManager::NORMAL;
+					has_textures.y = 1.0f;
+					break;
+				case aiTextureType_SPECULAR:
+					t_type = TextureManager::SPECULAR;
+					has_textures.z = 1.0f;
+					break;
+				case aiTextureType_UNKNOWN:
+					t_type = TextureManager::RMA;
+					has_textures.w = 1.0f;
+					break;
 			}
 
 			aiString texture_name;

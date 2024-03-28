@@ -12,7 +12,7 @@
 class TextureManager
 {
 public:
-	enum TextureType { DIFFUSE, NORMAL, SPECULAR};
+	enum TextureType { DIFFUSE, NORMAL, SPECULAR, RMA };
 
 	static TextureManager& getInstance();
 	static void init();
@@ -35,6 +35,7 @@ private:
 		GLuint64 diffuse;
 		GLuint64 specular;
 		GLuint64 normal;
+		GLuint64 rma;
 	};
 	std::vector<TexturePack> texture_packs;
 	bool updated;
