@@ -31,7 +31,7 @@ Window::Window(GLFWwindow* window) {
 
     last_time = -1;
 
-    scene = new Scene("PG2");
+    scene = new Scene("PG2_piece");
     scene->load();
     
     camera = scene->getCamera();

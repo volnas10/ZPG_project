@@ -11,6 +11,7 @@ in vec3 normal_cs;
 in vec3 eyeDirection_cs;
 in vec3 normal_ws;
 flat in vec3 eyePosition_ws;
+in mat3 TBN;
 
 out vec4 color;
 
@@ -46,9 +47,14 @@ layout(std430, binding = 2) uniform TexturePacks{
 
 void main(){
 	vec3 normal = normalize(normal_ws);
-	vec3 eye_direction = normalize(vertexPosition_ws - eyePosition_ws);
+	if (material.has_textures[1] > uint(0)) {
+		normal = normalize(texture(sampler2D(texturePacks[material.texture_id].normal_map), uv).rgb * 2.0 - 1.0);
+		normal = normalize(TBN * normal);
+	}
+
+	vec3 eye_direction = normalize(eyePosition_ws - vertexPosition_ws);
 	//vec3 eye_direction = normalize(gl_FragCoord.xyz - )
-	float cos_theta = dot(normal_ws, eyeDirection_ws);
+	float cos_theta = dot(normal_ws, eye_direction);
 	if (cos_theta < 0) {
 		normal = -normal;
 		cos_theta = -cos_theta;
@@ -99,6 +105,5 @@ void main(){
 
 	vec3 ambientColor = diffuseColor.rgb * 0.05;
 	color.rgb = diffuse_part + (F0 * brdf.r + brdf.g) * specular_part * ao;
-	color.rgb = vec3(cos_theta);
 	color.a = 1.0;
 }

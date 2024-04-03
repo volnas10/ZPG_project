@@ -90,7 +90,7 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 					t_type = TextureManager::SPECULAR;
 					has_textures.z = 1.0f;
 					break;
-				case aiTextureType_UNKNOWN:
+				case aiTextureType_DIFFUSE_ROUGHNESS: // RMA doesn't have specific key in mtl file so I use roughness
 					t_type = TextureManager::RMA;
 					has_textures.w = 1.0f;
 					break;

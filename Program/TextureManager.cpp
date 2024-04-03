@@ -591,6 +591,9 @@ int TextureManager::addMaterial(int material_id, const char* filename, TextureTy
 	GLenum gl_color_type;
 	if (fi_color_type == FIC_RGB) {
 		gl_color_type = GL_BGR;
+		if (format == FIF_PNG) {
+			dib = FreeImage_ConvertTo24Bits(dib);
+		}
 	}
 	else if (fi_color_type == FIC_RGBALPHA) {
 		gl_color_type = GL_BGRA;
@@ -637,6 +640,9 @@ int TextureManager::addMaterial(int material_id, const char* filename, TextureTy
 	}
 	else if (type == TextureType::SPECULAR) {
 		instance.texture_packs[material_id].specular = handle;
+	}
+	else if (type == TextureType::RMA) {
+		instance.texture_packs[material_id].rma = handle;
 	}
 
 	return material_id;

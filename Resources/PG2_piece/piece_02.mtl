@@ -9,6 +9,6 @@ newmtl white_plastic
 	map_Kd scuffed-plastic6-alb.png
 	Ks 1.0 1.0 1.0
 	Ke 0 0 0
-	map_RMA plastic_02_rma.png
+	map_Pr plastic_02_rma.png
 	map_bump scuffed-plastic-normal.png
 	shader 5
