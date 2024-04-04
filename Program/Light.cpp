@@ -2,8 +2,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-Light::Light(glm::vec3 color) {
-	this->color = color;
+Light::Light() {
 	transformation = nullptr;
 }
 
@@ -15,7 +14,7 @@ void Light::makePoint(glm::vec3 position, glm::vec3 attenuation) {
 }
 
 void Light::makeDirectional(glm::vec3 direction) {
-	this->direction = direction;
+	this->direction = glm::normalize(direction);
 	this->light_type = DIRECTIONAL;
 	calculateMatrix();
 }
@@ -48,8 +47,6 @@ glm::mat4 Light::getMatrix() {
 Light::LightStruct Light::toStruct() {
 	LightStruct l_struc;
 	l_struc.type = light_type;
-	l_struc.color = glm::vec4(color, 0);
-
 
 	glm::vec3 dir = direction;
 	glm::vec3 pos = position;;
@@ -101,7 +98,7 @@ void Light::calculateMatrix() {
 	}
 	// Orthographic matrix for directional light
 	if (light_type == DIRECTIONAL) {
-		glm::mat4 projection_matrix = glm::ortho(-40.0, 40.0, -40.0, 40.0, -40.0, 40.0);
+		glm::mat4 projection_matrix = glm::ortho(-40.0, 40.0, -40.0, 40.0, -100.0, 100.0);
 		glm::mat4 view_matrix = glm::lookAt(glm::vec3(0, 0, 0), dir, glm::vec3(0, 1, 0));
 		lightspace_matrix = projection_matrix * view_matrix;
 	}

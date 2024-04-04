@@ -45,6 +45,18 @@ layout(std430, binding = 2) uniform TexturePacks{
 	TexturePack texturePacks[32];
 };
 
+uniform int LightCount;
+layout(std140, binding = 3) uniform Light {
+	vec4 position;
+	vec4 direction;
+	vec4 attenuation; // constant, linear, quadratic, padding
+	mat4 lightspace_matrix;
+	float angle_precalculated;
+	uint type;
+} Lights[6];
+
+const vec2 shadowMultisample[5] = { vec2(0, 1), vec2(-1, 0), vec2(0, 0), vec2(1, 0), vec2(0, -1) };
+
 void main(){
 	vec3 normal = normalize(normal_ws);
 	if (material.has_textures[1] > uint(0)) {
@@ -53,7 +65,6 @@ void main(){
 	}
 
 	vec3 eye_direction = normalize(eyePosition_ws - vertexPosition_ws);
-	//vec3 eye_direction = normalize(gl_FragCoord.xyz - )
 	float cos_theta = dot(normal_ws, eye_direction);
 	if (cos_theta < 0) {
 		normal = -normal;
@@ -82,6 +93,32 @@ void main(){
 		specularColor = material.specular_color.rgb;
 	}
 
+	// Get shadowing
+	float shadow = 0.0;
+	for (int i = 0; i < LightCount; i++) {
+
+		uint type = Lights[i].type;
+
+		// Calculating coordinates in depth map
+		vec4 vertexPosition_ls = Lights[i].lightspace_matrix * vec4(vertexPosition_ws, 1.0);
+		vec3 fragmentPos = vertexPosition_ls.xyz / vertexPosition_ls.w;
+		vec3 projCoords = fragmentPos * 0.5 + 0.5;
+		projCoords.z -= 0.0004;
+
+		if (ShadowsOn) {
+			vec2 texelSize = 1.0 / textureSize(DepthMaps, 0).xy;
+
+			for (int j = 0; j < 5; j++)
+			{
+				shadow += 0.2 + texture(DepthMaps, vec4(projCoords.xy + shadowMultisample[j] * texelSize, i, projCoords.z)).r * 0.8;
+			}
+			shadow /= 5.0;
+		}
+		else {
+			shadow = 1.0;
+		}
+	}
+
 	float roughness = material.roughness;
 	float metallic = material.metallic;
 	float ao = 1.0;
@@ -94,7 +131,7 @@ void main(){
 
 	vec2 brdf = texture(BRDFSampler, vec2(cos_theta, roughness)).rg;
 	vec3 F0 = mix(vec3(0.04), diffuseColor, metallic);
-	vec3 F = F0 + (vec3(1.0) - F0) * pow(1 - cos_theta, 5);
+	vec3 F = F0 + (1 - F0) * pow(2, (-5.55473 / cos_theta - 6.98316) * cos_theta);
 	vec3 Fd = (vec3(1.0) - F) * (1 - metallic);
 
 	vec3 diffuse_part = Fd * (diffuseColor / PI) * irradiance;
@@ -104,6 +141,6 @@ void main(){
 	vec3 specular_part = textureLod(PrefilteredMapSampler, vec2(ref_u, 1 - ref_v), 6.0 * roughness).rgb;
 
 	vec3 ambientColor = diffuseColor.rgb * 0.05;
-	color.rgb = diffuse_part + (F0 * brdf.r + brdf.g) * specular_part * ao;
+	color.rgb = diffuse_part * shadow + (F0 * brdf.r + brdf.g) * specular_part * ao;
 	color.a = 1.0;
 }

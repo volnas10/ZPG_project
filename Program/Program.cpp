@@ -40,7 +40,7 @@ Program::Program(std::vector<Shader> shaders) {
 
 	glGenBuffers(1, &lights_buffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, lights_buffer);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light::LightStruct) * 10, NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(Light::LightStruct) * 6, NULL, GL_DYNAMIC_DRAW);
 }
 
 Program::~Program() {
@@ -65,7 +65,7 @@ void Program::updateLights(std::vector<Light::LightStruct> lights) {
 	glBindBuffer(GL_UNIFORM_BUFFER, lights_buffer);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, lights.size() * sizeof(Light::LightStruct), &lights[0]);
 	for (int i = 0; i < lights.size(); i++) {
-		glBindBufferRange(GL_UNIFORM_BUFFER, 2 + i, lights_buffer, 256 * i, sizeof(Light::LightStruct));
+		glBindBufferRange(GL_UNIFORM_BUFFER, 3 + i, lights_buffer, 256 * i, sizeof(Light::LightStruct));
 	}
 
 	glProgramUniform1i(program_ID, light_count_ID, lights.size());

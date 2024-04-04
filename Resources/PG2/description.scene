@@ -11,6 +11,10 @@ Object {
 	model: 0
 	default_transformation: 0
 }
+Light {
+	type: directional
+	direction: 0.42 -0.4 0.87
+}
 Shader {
 	type: vertex
 	name: PG2VertexShader.glsl

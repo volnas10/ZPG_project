@@ -9,20 +9,21 @@
 
 #include "ShadowMapper.h"
 
-const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096, SHADOW_COUNT = 6;
+const unsigned int SHADOW_WIDTH = 8192, SHADOW_HEIGHT = 8192, SHADOW_COUNT = 6;
 
 ShadowMapper::ShadowMapper() {
     // Depth buffer and shadow map shinanigans
     glGenFramebuffers(1, &depth_map_FBO);
 
     // Make array for all depth maps
+    texture_unit = 5;
     glGenTextures(1, &depth_map);
-    glActiveTexture(GL_TEXTURE4);
+    glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D_ARRAY, depth_map);
 
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24,
         SHADOW_WIDTH, SHADOW_HEIGHT, SHADOW_COUNT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);

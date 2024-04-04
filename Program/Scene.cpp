@@ -454,7 +454,6 @@ bool Scene::load() {
 		else if (line.find("Light") == 0) {
 			glm::vec3 position(.0f, .0f, .0f);
 			glm::vec3 direction(.0f, .0f, .0f);
-			glm::vec3 color(1.0f, 1.0f, 1.0f);
 			glm::vec3 attenuation(1.0f, 1.0f, 1.0f);
 			trans::Transformation* transformation = nullptr;
 			float angle = 30.0f;
@@ -472,9 +471,6 @@ bool Scene::load() {
 				}
 				if (key == "direction") {
 					sstream >> direction.x >> direction.y >> direction.z;
-				}
-				else if (key == "color") {
-					sstream >> color.x >> color.y >> color.z;
 				}
 				else if (key == "angle") {
 					sstream >> angle;
@@ -496,7 +492,7 @@ bool Scene::load() {
 				std::getline(description, line);
 			}
 
-			Light* light = new Light(color);
+			Light* light = new Light();
 			if (type == "point") {
 				light->makePoint(position, attenuation);
 			}

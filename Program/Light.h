@@ -14,7 +14,6 @@ class Light {
 public:
 	enum Type{POINT, DIRECTIONAL, SPOTLIGHT, FLASHLIGHT};
 	struct LightStruct {
-		glm::vec4 color;
 		glm::vec4 position;
 		glm::vec4 direction;
 		glm::vec4 attenuation; // constant, linear, quadratic, -
@@ -24,7 +23,7 @@ public:
 		int padding[30];
 	};
 	
-	Light(glm::vec3 color);
+	Light();
 	void makePoint(glm::vec3 position, glm::vec3 attenuation);
 	void makeDirectional(glm::vec3 direction);
 	void makeSpotlight(glm::vec3 position, glm::vec3 direction, glm::vec3 attenuation, float angle);
@@ -41,7 +40,6 @@ public:
 
 private:
 	Type light_type;
-	glm::vec3 color;
 	glm::vec3 position;
 	glm::vec3 direction;
 	glm::vec3 attenuation;

@@ -90,7 +90,7 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 	glCullFace(GL_BACK);
 
 	//depth_map_renderer->render(shadow_mapper->getUnit());
-
+	
 	for (AbstractRenderer* r : pre_renderers) {
 		r->render();
 	}
@@ -120,6 +120,7 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 	for (AbstractRenderer* r : post_renderers) {
 		r->render();
 	}
+	
 }
 
 void RenderingScheduler::useShadows() {
