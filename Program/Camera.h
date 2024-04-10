@@ -17,7 +17,7 @@ private:
 
 	std::vector<CameraSubscriber*> matrix_subscribers;
 public:
-	Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle, float aspect_ratio);
+	Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle);
 
 	void subscribe(CameraSubscriber* subscriber);
 	void notifySubscribers();

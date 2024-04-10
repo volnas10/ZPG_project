@@ -14,6 +14,10 @@ AbstractRenderer::AbstractRenderer(Program* program) {
 	this->program = program;
 }
 
+AbstractRenderer::~AbstractRenderer() {
+    delete program;
+}
+
 /*
 SkyboxRenderer::SkyboxRenderer(Program* program, Texture* texture) : AbstractRenderer(program) {
     this->texture = texture;
@@ -87,9 +91,12 @@ void SkyboxRenderer::render() {
 }
 */
 
+Renderer::~Renderer() {
+    delete program;
+}
+
 Renderer::Renderer(Program* program) {
     this->program = program;
-
     irradiance_ID = program->getUniformLocation("IrradianceSampler");
     prefiltered_map_ID = program->getUniformLocation("PrefilteredMapSampler");
     brdf_ID = program->getUniformLocation("BRDFSampler");
@@ -119,39 +126,6 @@ void Renderer::render(object::Mesh* mesh, size_t count) {
     glDrawElementsInstanced(GL_TRIANGLES, (GLsizei) mesh->size(), GL_UNSIGNED_INT, NULL, (GLsizei) count);
 
     program->stopUsing();
-}
-
-int RenderingGroup::id_counter = 0;
-
-RenderingGroup::RenderingGroup(Program* program) {
-    renderer = new Renderer(program);
-    id = id_counter++;
-}
-
-void RenderingGroup::addObjectTransformation(object::Object* object, trans::Transformation* transformation) {
-    objects[object].second.push_back(transformation);
-}
-
-void RenderingGroup::addAllObjectTransformations(object::Object* object, std::pair<trans::Transformation*, std::vector<trans::Transformation*>> transformations) {
-    objects[object] = transformations;
-}
-
-std::vector<trans::Transformation*> RenderingGroup::getTransformations(object::Object* object) {
-    if (objects.find(object) == objects.end()) {
-        return std::vector<trans::Transformation*>();
-    }
-    return objects[object].second;
-}
-
-trans::Transformation* RenderingGroup::getDefaultTransformation(object::Object* object) {
-    if (objects.find(object) == objects.end()) {
-        return nullptr;
-    }
-    return objects[object].first;
-}
-
-Renderer* RenderingGroup::getRenderer() {
-    return renderer;
 }
 
 DepthMapRenderer::DepthMapRenderer() {
@@ -203,7 +177,7 @@ CrosshairRenderer::CrosshairRenderer() : AbstractRenderer() {
          0.02f, -0.02f, 0.0f, 1.0f, 0.0f,
     };
 
-    texture_samplers.push_back(program->getUniformLocation("Crosshair"));
+    sampler_ID = program->getUniformLocation("Crosshair");
     aspect_ratio_ID = program->getUniformLocation("AspectRatio");
 
     TextureManager::addCrosshair("../Resources/crosshair.png");
@@ -213,7 +187,7 @@ CrosshairRenderer::CrosshairRenderer() : AbstractRenderer() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
 
     program->use();
-    glUniform1i(texture_samplers[0], 4);
+    glUniform1i(sampler_ID, 4);
     program->stopUsing();
 }
 
@@ -228,7 +202,6 @@ void CrosshairRenderer::render() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-    //glUniform1i(texture_samplers[0], GL_TEXTURE3);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glEnable(GL_DEPTH_TEST);
@@ -242,8 +215,13 @@ void CrosshairRenderer::updateSize(int width, int height) {
     program->stopUsing();
 }
 
-EnvMapRenderer::EnvMapRenderer(Program* program, std::vector<float> sphere) : AbstractRenderer(program) {
-    texture_samplers.push_back(program->getUniformLocation("EnvMapSampler"));
+EnvMapRenderer::EnvMapRenderer(std::vector<float> sphere) : AbstractRenderer() {
+    std::vector<Shader> shaders;
+    shaders.push_back(Shader("EnvMapVertexShader.glsl", GL_VERTEX_SHADER));
+    shaders.push_back(Shader("EnvMapFragmentShader.glsl", GL_FRAGMENT_SHADER));
+    program = new Program(shaders);
+
+    sampler_ID = program->getUniformLocation("EnvMapSampler");
 
     triangles = sphere.size() / 3;
     glGenBuffers(1, &sphere_VBO);
@@ -251,7 +229,7 @@ EnvMapRenderer::EnvMapRenderer(Program* program, std::vector<float> sphere) : Ab
     glBufferData(GL_ARRAY_BUFFER, sphere.size() * sizeof(float), &sphere[0], GL_STATIC_DRAW);
 
     program->use();
-    glUniform1i(texture_samplers[0], 1);
+    glUniform1i(sampler_ID, 1);
     program->stopUsing();
 }
 

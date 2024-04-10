@@ -63,6 +63,14 @@ namespace object {
 
 		std::vector<Mesh*> getMeshes();
 	};
+
+	class ObjectGroup {
+	public:
+		std::map<object::Object*, std::pair<trans::Transformation*, std::vector<trans::Transformation*>>> objects;
+
+		void addObjectTransformation(object::Object* object, trans::Transformation* transformation);
+		void addAllObjectTransformations(object::Object* object, std::pair<trans::Transformation*, std::vector<trans::Transformation*>> transformations);
+	};
 }
 
 

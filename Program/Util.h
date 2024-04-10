@@ -10,6 +10,9 @@
 #define PI 3.14159265359
 #define HALF_PI 1.57079632679
 #define TWO_PI 6.28318530718
+#define SHADOWS_NONE 0xff0
+#define SHADOWS_MAP 0xff1
+#define SHADOWS_STENCIL 0xff2
 
 class TransformationBuffer;
 class Light;

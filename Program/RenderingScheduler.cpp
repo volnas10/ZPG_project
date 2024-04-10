@@ -6,50 +6,41 @@
 
 #include "TransformationBuffer.h"
 #include "Renderer.h"
+#include "Util.h"
 
 #include "RenderingScheduler.h"
 
 
-RenderingScheduler::RenderingScheduler() {
+RenderingScheduler::RenderingScheduler(object::ObjectGroup* group, RENDERERS renderers) {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 	glGenFramebuffers(1, &depth_FBO);
-	use_shadows = false;
+	shadow_type = SHADOWS_NONE;
 
 	//depth_map_renderer = new DepthMapRenderer();
-}
 
-void RenderingScheduler::addPreRenderer(AbstractRenderer* renderer) {
-	pre_renderers.push_back(renderer);
-}
+	pre_renderers = std::get<0>(renderers);
+	main_renderers = std::get<1>(renderers);
+	post_renderers = std::get<2>(renderers);
 
-void RenderingScheduler::addPostRenderer(AbstractRenderer* renderer) {
-	post_renderers.push_back(renderer);
-}
+	for (auto obj_group : group->objects) {
+		object::Object* object = obj_group.first;
+		std::vector<trans::Transformation*> transformations = obj_group.second.second;
+		trans::Transformation* default_trans = obj_group.second.first;
 
-
-// Parses all objects into a structure that is more efficient to render
-void RenderingScheduler::addRenderingGroups(std::vector<object::Object*> objects, std::vector<RenderingGroup*> groups) {
-	int object_id = 0;
-	for (object::Object* object : objects) {
-		for (RenderingGroup* group : groups) {
-			std::vector<trans::Transformation*> transformations = group->getTransformations(object);
-			trans::Transformation* default_trans = group->getDefaultTransformation(object);
-			if (transformations.size() == 0) {
-				continue;
-			}
-
-			TransformationBuffer* buffer = new TransformationBuffer();
-			buffer->setDefaultTransformation(default_trans);
-			buffer->setTransformations(transformations);
-			for (object::Mesh* mesh : object->getMeshes()) {
-				MeshInstances mi;
-				mi.mesh = mesh;
-				mi.instances[object_id + group->id] = std::make_pair(group->getRenderer(), buffer);
-				meshes.push_back(mi);
-			}
+		if (transformations.size() == 0) {
+			continue;
 		}
-		object_id += 10;
+		
+		TransformationBuffer* buffer = new TransformationBuffer();
+		buffer->setDefaultTransformation(default_trans);
+		buffer->setTransformations(transformations);
+		for (object::Mesh* mesh : object->getMeshes()) {
+			MeshInstances mi;
+			mi.mesh = mesh;
+			mi.instances = buffer;
+			meshes.push_back(mi);
+		}
 	}
 }
 
@@ -61,7 +52,7 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 	// Instead of going through all objects in renderer we go through all instances of the same mesh in each renderer
 	// So instead of preparing one mesh again andagain for each instance, we prepare it once and draw every instance in every renderer
 
-	if (use_shadows) {
+	if (shadow_type == SHADOWS_MAP) {
 		int transformations_idx;
 		shadow_mapper->prepare(&transformations_idx);
 
@@ -71,15 +62,15 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 
 			for (MeshInstances meshInstances : meshes) {
 				meshInstances.mesh->bindForShadows();
-				for (auto pair : meshInstances.instances) {
-					auto target = pair.second;
-					target.second->bind(transformations_idx);
-
-					shadow_mapper->renderShadows(meshInstances.mesh, target.second->size());
-				}
+				meshInstances.instances->bind(transformations_idx);
+				shadow_mapper->renderShadows(meshInstances.mesh, meshInstances.instances->size());
 			}
 
 		}
+	}
+	else if (shadow_type == SHADOWS_STENCIL) {
+		// Start with ambient pass
+
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -94,24 +85,22 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 	for (AbstractRenderer* r : pre_renderers) {
 		r->render();
 	}
+
 	for (MeshInstances meshInstances : meshes) {
 		meshInstances.mesh->bind();
-		for (auto pair : meshInstances.instances) {
-			glStencilFunc(GL_ALWAYS, pair.first, 0xFF);
-			auto target = pair.second;
-			// Use renderer
-			int transformations_idx;
-			if (use_shadows) {
-				target.first->prepare(&transformations_idx, shadow_mapper->getUnit());
-			}
-			else {
-				target.first->prepare(&transformations_idx, -1);
-			}
-			target.second->bind(transformations_idx);
 
-			// Draw the mesh with every transformation
-			target.first->render(meshInstances.mesh, target.second->size());
+		// Use renderer
+		int transformations_idx;
+		if (shadow_type == SHADOWS_MAP) {
+			((Renderer*) main_renderers[0])->prepare(&transformations_idx, shadow_mapper->getUnit());
 		}
+		else {
+			((Renderer*)main_renderers[0])->prepare(&transformations_idx, -1);
+		}
+		meshInstances.instances->bind(transformations_idx);
+
+		// Draw the mesh with every transformation
+		((Renderer*)main_renderers[0])->render(meshInstances.mesh, meshInstances.instances->size());
 	}
 
 	glDisable(GL_STENCIL_TEST);
@@ -123,12 +112,15 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 	
 }
 
-void RenderingScheduler::useShadows() {
-	use_shadows = true;
-	shadow_mapper = new ShadowMapper();
+void RenderingScheduler::setShadowType(unsigned int type) {
+	shadow_type = type;
+	if (type != SHADOWS_NONE) {
+		shadow_mapper = new ShadowMapper();
+	}
 }
 
 void RenderingScheduler::addObjectAtRuntime(trans::Transformation* transformation) {
+	/*
 	std::cout << "Adding object with id " << selected_object_id << std::endl;
 	for (MeshInstances instances : meshes) {
 		for (auto pair : instances.instances) {
@@ -136,11 +128,7 @@ void RenderingScheduler::addObjectAtRuntime(trans::Transformation* transformatio
 			pair.second.second->addTransformation(transformation);
 		}
 	}
-}
-
-void RenderingScheduler::selectObject(int width, int height) {
-	glReadPixels(width, height, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &selected_object_id);
-	std::cout << "Selected object with id: " << selected_object_id << std::endl;
+	*/
 }
 
 float RenderingScheduler::depthAtPos(int width, int height) {

@@ -15,26 +15,12 @@ Light {
 	type: directional
 	direction: 0.42 -0.4 0.87
 }
-Shader {
-	type: vertex
-	name: PG2VertexShader.glsl
-}
-Shader {
-	type: fragment
-	name: PG2FragmentShader.glsl
-}
-Program {
-	shaders: [0, 1]
-}
-Renderer {
-	objects: [0]
-	program: 0
-}
 Camera {
 	position: 4.0 0.0 -4.0
 	lookat: 0.0 0.0 0.0
 	fov: 70.0
 }
-Environment {
-	name: lebombo_4k.exr
+PG2Settings {
+	environment: lebombo_4k.exr
+	shadows: none
 }

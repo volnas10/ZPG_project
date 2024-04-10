@@ -105,4 +105,12 @@ namespace object {
 	size_t Mesh::size() {
 		return index_count;
 	}
+
+	void ObjectGroup::addObjectTransformation(object::Object* object, trans::Transformation* transformation) {
+		objects[object].second.push_back(transformation);
+	}
+
+	void ObjectGroup::addAllObjectTransformations(object::Object* object, std::pair<trans::Transformation*, std::vector<trans::Transformation*>> transformations) {
+		objects[object] = transformations;
+	}
 }

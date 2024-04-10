@@ -34,19 +34,14 @@
     <None Include="shaders\CrosshairVertexShader.glsl" />
     <None Include="shaders\DepthMapFragmentShader.glsl" />
     <None Include="shaders\DepthMapVertexShader.glsl" />
-    <None Include="shaders\FragmentShader_simple.glsl" />
     <None Include="shaders\EnvMapFragmentShader.glsl" />
     <None Include="shaders\EnvMapVertexShader.glsl" />
-    <None Include="shaders\NewFragmentShader.glsl" />
-    <None Include="shaders\NewVertexShader.glsl" />
-    <None Include="shaders\PG2FragmentShader.glsl" />
-    <None Include="shaders\PG2VertexShader.glsl" />
+    <None Include="shaders\CompleteFragmentShader.glsl" />
+    <None Include="shaders\CompleteVertexShader.glsl" />
     <None Include="shaders\ShadowFragmentShader.glsl" />
     <None Include="shaders\ShadowVertexShader.glsl" />
-    <None Include="shaders\SunFragmentShader.glsl" />
     <None Include="shaders\SkyboxFragmentShader.glsl" />
     <None Include="shaders\SkyboxVertexShader.glsl" />
-    <None Include="shaders\VertexShader_simple.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BezierCurve.h" />

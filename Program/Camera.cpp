@@ -7,15 +7,12 @@
 #include "Util.h"
 #include "Camera.h"
 
-Camera::Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle, float aspect_ratio) {
+Camera::Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle) {
 	this->position = position;
 	this->fov = fov;
 	this->horizontal_angle = horizontal_angle;
 	this->vertical_angle = vertical_angle;
-	this->aspect_ratio = aspect_ratio;
 
-	// Get view and projection matrix calculated right away
-	projection_matrix = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 150.0f);
 	move(glm::vec3(0), 0, 0);
 }
 

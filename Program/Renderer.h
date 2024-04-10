@@ -2,49 +2,37 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
+#define RENDERERS std::tuple<std::vector<AbstractRenderer*>, std::vector<Renderer*>, std::vector<AbstractRenderer*>>
+
 #include <map>
+#include <tuple>
 
 #include "Util.h"
 #include "Program.h"
 #include "Object.h"
 #include "Light.h"
 
-// Right now standalone renderer, later might inherit from abstract renderer
+class AbstractRenderer {
+protected:
+	Program* program;
+public:
+	AbstractRenderer() {};
+	AbstractRenderer(Program* program);
+	~AbstractRenderer();
+	virtual void render() = 0;
+};
+
+
 class Renderer {
 private:
 	Program* program;
 	GLuint irradiance_ID, prefiltered_map_ID, brdf_ID;
 	GLuint depth_map_ID, use_shadows_ID;
 public:
+	~Renderer();
 	Renderer(Program* program);
 	void prepare(int* transformations_idx, GLint depth_map_ID);
 	void render(object::Mesh* mesh, size_t count);
-};
-
-class RenderingGroup {
-private:
-	static int id_counter;
-	Renderer* renderer;
-	std::map<object::Object*, std::pair<trans::Transformation*, std::vector<trans::Transformation*>>> objects;
-public:
-	int id;
-
-	RenderingGroup(Program* program);
-	void addObjectTransformation(object::Object* object, trans::Transformation* transformation);
-	void addAllObjectTransformations(object::Object* object, std::pair<trans::Transformation*, std::vector<trans::Transformation*>> transformations);
-	std::vector<trans::Transformation*> getTransformations(object::Object* object);
-	trans::Transformation* getDefaultTransformation(object::Object* object);
-	Renderer* getRenderer();
-};
-
-class AbstractRenderer {
-protected:
-	Program* program;
-	std::vector<GLuint> texture_samplers;
-public:
-	AbstractRenderer() {};
-	AbstractRenderer(Program* program);
-	virtual void render() = 0;
 };
 
 /* Renderer specialized for rendering skybox only
@@ -60,7 +48,9 @@ public:
 
 class CrosshairRenderer : public AbstractRenderer, public WindowSizeSubscriber {
 private:
-	GLuint VBO, aspect_ratio_ID;
+	GLuint sampler_ID;
+	GLuint VBO;
+	GLuint aspect_ratio_ID;
 public:
 	CrosshairRenderer();
 	void render();
@@ -69,10 +59,11 @@ public:
 
 class EnvMapRenderer : public AbstractRenderer {
 private:
+	GLuint sampler_ID;
 	GLuint sphere_VBO;
 	GLuint triangles;
 public:
-	EnvMapRenderer(Program* program, std::vector<float> sphere);
+	EnvMapRenderer(std::vector<float> sphere);
 	void render();
 };
 

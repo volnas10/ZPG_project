@@ -11,15 +11,19 @@ class Scene
 {
 private:
 	std::string name;
-	std::vector<RenderingGroup*> rendering_groups;
-	std::vector<AbstractRenderer*> other_renderers;
-	std::vector<Program*> programs;
+	std::vector<AbstractRenderer*> pre_renderers;
+	std::vector<Renderer*> main_renderers;
+	std::vector<AbstractRenderer*> post_renderers;
+
 	std::vector<object::Object*> models;
-	std::vector<std::pair<object::Object*, std::pair<trans::Transformation*, std::vector<trans::Transformation*>>>> objects;
+	object::ObjectGroup* objects;
 	std::vector<trans::Transformation*> transformations;
 	trans::TransformationController transformation_controller;
 	LightCollection* lights;
 	Camera* camera;
+	std::vector<WindowSizeSubscriber*> window_subscribers;
+
+	unsigned int shadow_type;
 
 	object::Object* parseObject(const aiScene* scene, aiString path);
 	std::vector<float> parseVertices(const aiScene* scene);
@@ -30,14 +34,16 @@ public:
 	bool load();
 
 	std::vector<object::Object*> getObjects();
-	std::vector<RenderingGroup*> getRenderingGroups();
-	std::vector<AbstractRenderer*> getRenderers();
-	std::vector<Program*> getPrograms();
+	object::ObjectGroup* getObjectGroup();
+	RENDERERS getRenderers();
+	std::vector<WindowSizeSubscriber*> getWindowSubscribers();
 	Camera* getCamera();
 	LightCollection* getLights();
+	unsigned int getShadowType();
 
 	void moveObjects(double delta_time);
 
 };
 
+#undef VAR
 #endif

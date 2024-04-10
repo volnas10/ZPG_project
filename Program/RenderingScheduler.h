@@ -2,6 +2,7 @@
 #ifndef RENDERINGSCHEDULER_H
 #define RENDERINGSCHEDULER_H
 
+#include <array>
 #include "Object.h"
 #include "Renderer.h"
 #include "TransformationBuffer.h"
@@ -9,7 +10,7 @@
 
 struct MeshInstances {
 	object::Mesh* mesh;
-	std::map<int, std::pair<Renderer*, TransformationBuffer*>> instances;
+	TransformationBuffer* instances;
 };
 
 class RenderingScheduler : public LightSubscriber {
@@ -18,25 +19,21 @@ private:
 	std::vector<MeshInstances> meshes;
 	std::vector<Light::LightStruct> lights;
 	std::vector<AbstractRenderer*> pre_renderers;
+	std::vector<Renderer*> main_renderers;
 	std::vector<AbstractRenderer*> post_renderers;
 	ShadowMapper* shadow_mapper;
-	bool use_shadows;
+	unsigned int shadow_type;
 
 	DepthMapRenderer* depth_map_renderer;
-	int selected_object_id;
 
 public:
-	RenderingScheduler();
-	void addPreRenderer(AbstractRenderer* renderer);
-	void addPostRenderer(AbstractRenderer* renderer);
-	void addRenderingGroups(std::vector<object::Object*> objects, std::vector<RenderingGroup*> groups);
+	RenderingScheduler(object::ObjectGroup* group, RENDERERS renderers);
 	void updateLights(std::vector<Light::LightStruct> lights);
 	void render(float viewport_width, float viewport_height);
-	void useShadows();
+	void setShadowType(unsigned int type);
 
 	void addObjectAtRuntime(trans::Transformation* transformation);
 
-	void selectObject(int width, int height);
 	float depthAtPos(int width, int height);
 
 	ShadowMapper* getShadowMapper();

@@ -25,7 +25,6 @@
 
 using namespace Assimp;
 
-
 object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 	std::vector<object::Material> materials;
 	object::Object* object = new object::Object();
@@ -195,15 +194,20 @@ std::vector<float> Scene::parseVertices(const aiScene* scene) {
 Scene::Scene(std::string name) {
 	this->name = name;
 	lights = new LightCollection();
+	shadow_type = SHADOWS_NONE;
 }
 
 Scene::~Scene() {
 	delete camera;
-	for (AbstractRenderer* r : other_renderers) {
+	delete objects;
+	for (AbstractRenderer* r : pre_renderers) {
 		delete r;
 	}
-	for (Program* p : programs) {
-		delete p;
+	for (Renderer* r : main_renderers) {
+		delete r;
+	}
+	for (AbstractRenderer* r : post_renderers) {
+		delete r;
 	}
 	delete lights;
 }
@@ -219,8 +223,8 @@ bool Scene::load() {
 
 	std::vector<trans::Transformation*> transformations;
 	std::vector<BezierCurve*> bezier_curves;
-	std::vector<Shader> shaders;
 	std::vector<glm::vec3> obstacles;
+	objects = new object::ObjectGroup();
 	
 	Importer importer;
 	std::string line;
@@ -387,7 +391,7 @@ bool Scene::load() {
 			if (object_transformations.second.size() == 0) {
 				object_transformations.second.push_back(new trans::Transformation());
 			}
-			objects.push_back(std::make_pair(models[model_index], object_transformations));
+			objects->addAllObjectTransformations(models[model_index], object_transformations);
 		}
 		// Make object randomized
 		else if (line.find("RandomizeObject") == 0) {
@@ -447,7 +451,7 @@ bool Scene::load() {
 			obstacles.reserve(obstacles.size() + new_obstacles.size());
 			obstacles.insert(obstacles.end(), new_obstacles.begin(), new_obstacles.end());
 
-			objects.push_back(std::make_pair(models[model_index], random_transformations));
+			objects->addAllObjectTransformations(models[model_index], random_transformations);
 		}
 
 		// Load light
@@ -509,83 +513,6 @@ bool Scene::load() {
 				light->setTransformation(transformation);
 			}
 			lights->addLight(light);
-		}
-
-		// Load shader
-		else if (line.find("Shader") == 0) {
-			std::map<std::string, std::string> values;
-			// Load parameters
-			std::getline(description, line);
-			while (line.find("}") == std::string::npos) {
-				std::stringstream sstream(line);
-				std::string key, value;
-				sstream >> key >> value;
-				key.pop_back();
-				values[key] = value;
-			
-				std::getline(description, line);
-			}
-			GLenum shader_type;
-			if (values["type"] == "vertex") {
-				shader_type = GL_VERTEX_SHADER;
-			}
-			else if (values["type"] == "fragment") {
-				shader_type = GL_FRAGMENT_SHADER;
-			}
-			Shader shader(values["name"], shader_type);
-			shaders.push_back(shader);
-		}
-
-		// Load program
-		else if (line.find("Program") == 0) {
-			// Load parameters
-			std::getline(description, line);
-			std::vector<int> shader_indices;
-			while (line.find("}") == std::string::npos) {
-				std::stringstream sstream(line);
-				std::string key;
-				sstream >> key;
-				key.pop_back();
-				if (key == "shaders") {
-					stringutil::parseArray(line, &shader_indices);
-				}
-
-				std::getline(description, line);
-			}
-			std::vector<Shader> program_shaders;
-			for (int idx : shader_indices) {
-				program_shaders.push_back(shaders[idx]);
-			}
-			Program* pr = new Program(program_shaders);
-			programs.push_back(pr);
-			lights->subscribe(pr);
-		}
-		// Load renderers
-		else if (line.find("Renderer") == 0) {
-			// Load parameters
-			std::getline(description, line);
-			std::vector<int> object_indices;
-			int program_index;
-			while (line.find("}") == std::string::npos) {
-				std::stringstream sstream(line);
-				std::string key;
-				sstream >> key;
-				key.pop_back();
-				if (key == "objects") {
-					stringutil::parseArray(line, &object_indices);
-				}
-				else if (key == "program") {
-					sstream >> program_index;
-				}
-				std::getline(description, line);
-			}
-
-			RenderingGroup* rendering_group = new RenderingGroup(programs[program_index]);
-			for (int object_index : object_indices) {
-				auto pair = objects[object_index];
-				rendering_group->addAllObjectTransformations(pair.first, pair.second);
-			}
-			rendering_groups.push_back(rendering_group);
 		}
 		/* Load skybox
 		else if (line.find("Skybox") == 0) {
@@ -662,8 +589,7 @@ bool Scene::load() {
 				vertical_angle = glm::atan(camera_direction.y / adjacent);
 			}
 
-			// Aspect ratio will get adjusted in window
-			camera = new Camera(position, fov, horizontal_angle, vertical_angle, 1.77777);
+			camera = new Camera(position, fov, horizontal_angle, vertical_angle);
 		}
 
 		/* Load floor
@@ -702,36 +628,65 @@ bool Scene::load() {
 			objects.push_back(std::make_pair(obj, std::make_pair(nullptr, tmp)));
 		}
 		*/
-		// Load environment map
-		else if (line.find("Environment") == 0) {;
+		// Load settings for PG2
+		else if (line.find("PG2Settings") == 0) {;
 			std::getline(description, line);
 			while (line.find("}") == std::string::npos) {
 				std::stringstream sstream(line);
 				std::string key, value;
 				sstream >> key >> value;
 				key.pop_back();
-				if (key == "name") {
-					std::vector<Shader> shaders;
-					shaders.push_back(Shader("EnvMapVertexShader.glsl", GL_VERTEX_SHADER));
-					shaders.push_back(Shader("EnvMapFragmentShader.glsl", GL_FRAGMENT_SHADER));
-					Program* program = new Program(shaders);
-
+				if (key == "environment") {
 					TextureManager::addEnvMap((path + value).c_str());
 
 					// Load ico sphere
 					const aiScene* scene = importer.ReadFile("../Resources/ico_sphere.obj", NULL);
 					std::vector<float> sphere = parseVertices(scene);
 
-					EnvMapRenderer* renderer = new EnvMapRenderer(program, sphere);
-					programs.push_back(program);
-					other_renderers.insert(other_renderers.begin(), renderer);
+					EnvMapRenderer* renderer = new EnvMapRenderer(sphere);
+					pre_renderers.push_back(renderer);
 				}
+
+				if (key == "shadows") {
+					if (value == "none") {
+						shadow_type = SHADOWS_NONE;
+					}
+					else if (value == "map") {
+						shadow_type = SHADOWS_MAP;
+					}
+					else if (value == "stencil") {
+						shadow_type = SHADOWS_STENCIL;
+					}
+				}
+
 				std::getline(description, line);
 			}
 		}
 	}
 
 	description.close();
+
+	if (camera == nullptr) {
+		camera = new Camera(glm::vec3(0), 70, 0, 0);
+	}
+	window_subscribers.push_back(camera);
+
+	// Finally crerate rendering pipeline
+
+	if (shadow_type != SHADOWS_STENCIL) {
+		Shader vertex_shader("CompleteVertexShader.glsl", GL_VERTEX_SHADER);
+		Shader fragment_shader("CompleteFragmentShader.glsl", GL_FRAGMENT_SHADER);
+		Program* program = new Program({ vertex_shader, fragment_shader });
+		camera->subscribe(program);
+		main_renderers.push_back(new Renderer(program));
+	}
+
+	// Post-render
+	CrosshairRenderer* crosshair_renderer = new CrosshairRenderer();
+	post_renderers.push_back(crosshair_renderer);
+	window_subscribers.push_back(crosshair_renderer);
+
+	camera->subscribe(lights);
 	return true;
 }
 
@@ -740,18 +695,16 @@ std::vector<object::Object*> Scene::getObjects()
 	return models;
 }
 
-std::vector<RenderingGroup*> Scene::getRenderingGroups()
-{
-	return rendering_groups;
+object::ObjectGroup* Scene::getObjectGroup() {
+	return objects;
 }
 
-std::vector<AbstractRenderer*> Scene::getRenderers()
-{
-	return other_renderers;
+RENDERERS Scene::getRenderers() {
+	return RENDERERS{ pre_renderers, main_renderers, post_renderers };
 }
 
-std::vector<Program*> Scene::getPrograms() {
-	return programs;
+std::vector<WindowSizeSubscriber*> Scene::getWindowSubscribers() {
+	return window_subscribers;
 }
 
 Camera* Scene::getCamera() {
@@ -760,6 +713,10 @@ Camera* Scene::getCamera() {
 
 LightCollection* Scene::getLights() {
 	return lights;
+}
+
+unsigned int Scene::getShadowType() {
+	return shadow_type;
 }
 
 void Scene::moveObjects(double delta_time) {

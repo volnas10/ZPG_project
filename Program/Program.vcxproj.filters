@@ -77,25 +77,10 @@
     <None Include="shaders\SkyboxVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shaders\SunFragmentShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\VertexShader_simple.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\FragmentShader_simple.glsl">
-      <Filter>shaders</Filter>
-    </None>
     <None Include="shaders\ShadowFragmentShader.glsl">
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\ShadowVertexShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\NewFragmentShader.glsl">
-      <Filter>shaders</Filter>
-    </None>
-    <None Include="shaders\NewVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\DepthMapFragmentShader.glsl">
@@ -116,10 +101,10 @@
     <None Include="shaders\EnvMapVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shaders\PG2FragmentShader.glsl">
+    <None Include="shaders\CompleteFragmentShader.glsl">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shaders\PG2VertexShader.glsl">
+    <None Include="shaders\CompleteVertexShader.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

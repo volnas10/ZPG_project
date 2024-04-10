@@ -25,8 +25,6 @@ private:
 
 	std::vector<WindowSizeSubscriber*> subscribers;
 
-	bool place_object, select_object;
-
 	// Handle window resize
 	static void windowResizeCallback(GLFWwindow* window, int width, int height);
 	void windowResized(int width, int height);
@@ -38,10 +36,6 @@ private:
 	// Handles single key presses
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	void keyPressed(int key, int scancode, int action, int mods);
-
-	// Handle mouse click
-	static void mouseCallback(GLFWwindow* window, int button, int action, int mods);
-	void mouseClick(int button);
 
 	// Handles key presses every frame
 	void handleInput();
