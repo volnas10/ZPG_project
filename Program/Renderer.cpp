@@ -107,14 +107,20 @@ Renderer::Renderer(Program* program) {
 void Renderer::prepare(int* transformations_idx, GLint depth_map_ID) {
     program->use();
     TextureManager::bind(2);
-    glUniform1i(irradiance_ID, 1);
-    glUniform1i(prefiltered_map_ID, 2);
-    glUniform1i(brdf_ID, 3);
-    if (depth_map_ID >= 0) {
+    if (irradiance_ID < 1000000) {
+        glUniform1i(irradiance_ID, 1);
+    }
+    if (prefiltered_map_ID < 1000000) {
+		glUniform1i(prefiltered_map_ID, 2);
+	}
+    if (brdf_ID < 1000000) {
+        glUniform1i(brdf_ID, 3);
+    }
+    if (this->depth_map_ID < 1000000 && depth_map_ID >= 0) {
         glUniform1i(this->depth_map_ID, depth_map_ID);
         glUniform1i(this->use_shadows_ID, GL_TRUE);
     }
-    else {
+    else if (this->depth_map_ID < 1000000) {
         glUniform1i(this->use_shadows_ID, GL_FALSE);
     }
     // Block index of transformations
@@ -215,13 +221,14 @@ void CrosshairRenderer::updateSize(int width, int height) {
     program->stopUsing();
 }
 
-EnvMapRenderer::EnvMapRenderer(std::vector<float> sphere) : AbstractRenderer() {
+EnvMapRenderer::EnvMapRenderer(std::vector<float> sphere, Camera* camera) : AbstractRenderer() {
     std::vector<Shader> shaders;
     shaders.push_back(Shader("EnvMapVertexShader.glsl", GL_VERTEX_SHADER));
     shaders.push_back(Shader("EnvMapFragmentShader.glsl", GL_FRAGMENT_SHADER));
     program = new Program(shaders);
+    camera->subscribe(program);
 
-    sampler_ID = program->getUniformLocation("EnvMapSampler");
+    sampler_ID = program->getUniformLocation("EnvMap");
 
     triangles = sphere.size() / 3;
     glGenBuffers(1, &sphere_VBO);
@@ -229,7 +236,7 @@ EnvMapRenderer::EnvMapRenderer(std::vector<float> sphere) : AbstractRenderer() {
     glBufferData(GL_ARRAY_BUFFER, sphere.size() * sizeof(float), &sphere[0], GL_STATIC_DRAW);
 
     program->use();
-    glUniform1i(sampler_ID, 1);
+    glUniform1i(sampler_ID, 0);
     program->stopUsing();
 }
 

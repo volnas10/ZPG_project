@@ -3,7 +3,7 @@ out vec4 color;
 
 in vec3 fragDirection;
 
-uniform sampler2D Skybox;
+uniform sampler2D EnvMap;
 
 void main()
 {    
@@ -15,6 +15,6 @@ void main()
 	float v = acos(dir.y) / 3.14159265359;
 
     // Sample HDR texture
-    color = texture(Skybox, vec2(u, 1 - v));
+    color = texture(EnvMap, vec2(u, 1 - v));
     //color = vec4(dir, 1.0);
 }

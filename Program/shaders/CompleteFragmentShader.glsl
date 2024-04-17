@@ -94,18 +94,19 @@ void main(){
 	}
 
 	// Get shadowing
-	float shadow = 0.0;
-	for (int i = 0; i < LightCount; i++) {
+	float shadow = 1.0;
+	if (ShadowsOn) {
+		shadow = 0.0;
+		for (int i = 0; i < LightCount; i++) {
 
-		uint type = Lights[i].type;
+			uint type = Lights[i].type;
 
-		// Calculating coordinates in depth map
-		vec4 vertexPosition_ls = Lights[i].lightspace_matrix * vec4(vertexPosition_ws, 1.0);
-		vec3 fragmentPos = vertexPosition_ls.xyz / vertexPosition_ls.w;
-		vec3 projCoords = fragmentPos * 0.5 + 0.5;
-		projCoords.z -= 0.0004;
+			// Calculating coordinates in depth map
+			vec4 vertexPosition_ls = Lights[i].lightspace_matrix * vec4(vertexPosition_ws, 1.0);
+			vec3 fragmentPos = vertexPosition_ls.xyz / vertexPosition_ls.w;
+			vec3 projCoords = fragmentPos * 0.5 + 0.5;
+			projCoords.z -= 0.0004;
 
-		if (ShadowsOn) {
 			vec2 texelSize = 1.0 / textureSize(DepthMaps, 0).xy;
 
 			for (int j = 0; j < 5; j++)
@@ -114,11 +115,7 @@ void main(){
 			}
 			shadow /= 5.0;
 		}
-		else {
-			shadow = 1.0;
-		}
 	}
-
 	float roughness = material.roughness;
 	float metallic = material.metallic;
 	float ao = 1.0;

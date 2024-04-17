@@ -11,48 +11,61 @@
 
 const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096, SHADOW_COUNT = 6;
 
-ShadowMapper::ShadowMapper() {
-    // Depth buffer and shadow map shinanigans
-    glGenFramebuffers(1, &depth_map_FBO);
+ShadowMapper::ShadowMapper(unsigned int type) {
+    shadow_type = type;
 
-    // Make array for all depth maps
-    texture_unit = 5;
-    glGenTextures(1, &depth_map);
-    glActiveTexture(GL_TEXTURE5);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, depth_map);
+    if (shadow_type == SHADOWS_MAP) {
+        // Depth buffer and shadow map shinanigans
+        glGenFramebuffers(1, &depth_map_FBO);
 
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24,
-        SHADOW_WIDTH, SHADOW_HEIGHT, SHADOW_COUNT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+        // Make array for all depth maps
+        texture_unit = 5;
+        glGenTextures(1, &depth_map);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, depth_map);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, depth_map_FBO);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT24,
+            SHADOW_WIDTH, SHADOW_HEIGHT, SHADOW_COUNT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cout << "Failed to create shadow mapper" << std::endl;
-        return;
+        glBindFramebuffer(GL_FRAMEBUFFER, depth_map_FBO);
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            std::cout << "Failed to create shadow mapper" << std::endl;
+            return;
+        }
+
+        // Create program
+        std::vector<Shader> shaders;
+        shaders.push_back(Shader("ShadowVertexShader.glsl", GL_VERTEX_SHADER));
+        shaders.push_back(Shader("ShadowFragmentShader.glsl", GL_FRAGMENT_SHADER));
+        shadow_program = new Program(shaders);
+
+        pvmatrix_ID = shadow_program->getUniformLocation("PVmatrix");
+        texture_ID = shadow_program->getUniformLocation("TextureSampler");
+        opacity_ID = shadow_program->getUniformLocation("OpacitySampler");
+        has_textures_ID = shadow_program->getUniformLocation("HasTextures");
     }
+    else {
+        std::vector<Shader> shaders;
+        shaders.push_back(Shader("StencilVertexShader.glsl", GL_VERTEX_SHADER));
+        shaders.push_back(Shader("StencilGeometryShader.glsl", GL_GEOMETRY_SHADER));
+        shaders.push_back(Shader("StencilFragmentShader.glsl", GL_FRAGMENT_SHADER));
+        shadow_program = new Program(shaders);
 
-    // Create program
-    std::vector<Shader> shaders;
-    shaders.push_back(Shader("ShadowVertexShader.glsl", GL_VERTEX_SHADER));
-    shaders.push_back(Shader("ShadowFragmentShader.glsl", GL_FRAGMENT_SHADER));
-    shadow_program = new Program(shaders);
-
-    pvmatrix_ID = shadow_program->getUniformLocation("PVmatrix");
-    texture_ID = shadow_program->getUniformLocation("TextureSampler");
-    opacity_ID = shadow_program->getUniformLocation("OpacitySampler");
-    has_textures_ID = shadow_program->getUniformLocation("HasTextures");
+        pvmatrix_ID = shadow_program->getUniformLocation("PVmatrix");
+    }
 }
 
 void ShadowMapper::prepare(int* transformation_idx) {

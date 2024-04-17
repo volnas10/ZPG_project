@@ -11,6 +11,7 @@
 #include "Program.h"
 #include "Object.h"
 #include "Light.h"
+#include "Camera.h"
 
 class AbstractRenderer {
 protected:
@@ -63,7 +64,7 @@ private:
 	GLuint sphere_VBO;
 	GLuint triangles;
 public:
-	EnvMapRenderer(std::vector<float> sphere);
+	EnvMapRenderer(std::vector<float> sphere, Camera* camera);
 	void render();
 };
 

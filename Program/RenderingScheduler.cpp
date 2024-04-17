@@ -70,6 +70,25 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 	}
 	else if (shadow_type == SHADOWS_STENCIL) {
 		// Start with ambient pass
+		for (MeshInstances meshInstances : meshes) {
+			meshInstances.mesh->bind();
+			int transformations_idx;
+			((Renderer*)main_renderers[0])->prepare(&transformations_idx, -1);
+			meshInstances.instances->bind(transformations_idx);
+			((Renderer*)main_renderers[0])->render(meshInstances.mesh, meshInstances.instances->size());
+		}
+
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
+		glEnable(GL_DEPTH_CLAMP);
+		glDisable(GL_CULL_FACE);
+		glFrontFace(GL_CCW);
+		glEnable(GL_STENCIL_TEST);
+		glStencilMask(0xFF);
+		glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
+		glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+		glStencilFunc(GL_ALWAYS, 0, 0xFF);
+
 
 	}
 
@@ -81,6 +100,7 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 	glCullFace(GL_BACK);
 
 	//depth_map_renderer->render(shadow_mapper->getUnit());
+	
 	
 	for (AbstractRenderer* r : pre_renderers) {
 		r->render();
@@ -109,7 +129,6 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 	for (AbstractRenderer* r : post_renderers) {
 		r->render();
 	}
-	
 }
 
 void RenderingScheduler::setShadowType(unsigned int type) {

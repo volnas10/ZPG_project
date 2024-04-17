@@ -24,12 +24,15 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShadowMapper.cpp" />
+    <ClCompile Include="StencilGeometryShader.glsl" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="TransformationBuffer.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\AmbientFragmentShader.glsl" />
+    <None Include="shaders\AmbientVertexShader.glsl" />
     <None Include="shaders\CrosshairFragmentShader.glsl" />
     <None Include="shaders\CrosshairVertexShader.glsl" />
     <None Include="shaders\DepthMapFragmentShader.glsl" />
@@ -42,6 +45,8 @@
     <None Include="shaders\ShadowVertexShader.glsl" />
     <None Include="shaders\SkyboxFragmentShader.glsl" />
     <None Include="shaders\SkyboxVertexShader.glsl" />
+    <None Include="shaders\StencilFragmentShader.glsl" />
+    <None Include="shaders\StencilVertexShader.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BezierCurve.h" />

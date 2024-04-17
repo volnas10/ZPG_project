@@ -638,13 +638,6 @@ bool Scene::load() {
 				key.pop_back();
 				if (key == "environment") {
 					TextureManager::addEnvMap((path + value).c_str());
-
-					// Load ico sphere
-					const aiScene* scene = importer.ReadFile("../Resources/ico_sphere.obj", NULL);
-					std::vector<float> sphere = parseVertices(scene);
-
-					EnvMapRenderer* renderer = new EnvMapRenderer(sphere);
-					pre_renderers.push_back(renderer);
 				}
 
 				if (key == "shadows") {
@@ -670,18 +663,35 @@ bool Scene::load() {
 		camera = new Camera(glm::vec3(0), 70, 0, 0);
 	}
 	window_subscribers.push_back(camera);
+	camera->subscribe(lights);
 
 	// Finally crerate rendering pipeline
+
+	// Pre-renderers
+	const aiScene* scene = importer.ReadFile("../Resources/ico_sphere.obj", NULL);
+	std::vector<float> sphere = parseVertices(scene);
+
+	EnvMapRenderer* renderer = new EnvMapRenderer(sphere, camera);
+	pre_renderers.push_back(renderer);
 
 	if (shadow_type != SHADOWS_STENCIL) {
 		Shader vertex_shader("CompleteVertexShader.glsl", GL_VERTEX_SHADER);
 		Shader fragment_shader("CompleteFragmentShader.glsl", GL_FRAGMENT_SHADER);
 		Program* program = new Program({ vertex_shader, fragment_shader });
 		camera->subscribe(program);
+		lights->subscribe(program);
+		main_renderers.push_back(new Renderer(program));
+	}
+	else {
+		Shader vertex_shader("AmbientVertexShader.glsl", GL_VERTEX_SHADER);
+		Shader fragment_shader("AmbientFragmentShader.glsl", GL_FRAGMENT_SHADER);
+		Program* program = new Program({ vertex_shader, fragment_shader });
+		camera->subscribe(program);
+		lights->subscribe(program);
 		main_renderers.push_back(new Renderer(program));
 	}
 
-	// Post-render
+	// Post-renders
 	CrosshairRenderer* crosshair_renderer = new CrosshairRenderer();
 	post_renderers.push_back(crosshair_renderer);
 	window_subscribers.push_back(crosshair_renderer);
