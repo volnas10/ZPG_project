@@ -25,6 +25,21 @@
 
 using namespace Assimp;
 
+int Scene::findAdjacencedIndex(const aiMesh* mesh, int index1, int index2, int index3) {
+	for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
+		unsigned int*& indices = mesh->mFaces[i].mIndices;
+
+		for (int edge = 0; edge < 3; ++edge) {
+			unsigned int v1 = indices[edge];
+			unsigned int v2 = indices[(edge + 1) % 3];
+			unsigned int v_other = indices[(edge + 2) % 3];
+
+			if (((v1 == index1 && v2 == index2) || (v2 == index1 && v1 == index2)) && v_other != index3)
+				return v_other;
+		}
+	}
+}
+
 object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 	std::vector<object::Material> materials;
 	object::Object* object = new object::Object();
@@ -154,11 +169,16 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 			}
 		}
 
+		// Parse indices with adjancency
 		for (unsigned int f_index = 0; f_index < mesh->mNumFaces; f_index++) {
 			aiFace face = mesh->mFaces[f_index];
-			for (int idx = 0; idx < 3; idx++) {
-				indices.push_back(face.mIndices[idx]);
-			}
+
+			int v0 = face.mIndices[0];
+			int v2 = face.mIndices[1];
+			int v4 = face.mIndices[2];
+
+			// TODO : Find adjacencies
+
 		}
 		object->addMesh(vertices, normals, uvs, tangents, bitangents, indices, materials[mesh->mMaterialIndex]);
 	}
@@ -335,7 +355,7 @@ bool Scene::load() {
 					sstream >> obj_name;
 
 					const aiScene* scene = importer.ReadFile((path + obj_name).c_str(),
-						aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace);
+						aiProcess_Triangulate | aiProcess_PreTransformVertices | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
 					if (!scene) {
 						description.close();
 						std::cout << "Cannot load object " << name << std::endl;

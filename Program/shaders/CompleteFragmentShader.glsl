@@ -115,6 +115,7 @@ void main(){
 			}
 			shadow /= 5.0;
 		}
+		shadow /= LightCount;
 	}
 	float roughness = material.roughness;
 	float metallic = material.metallic;

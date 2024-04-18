@@ -3,6 +3,16 @@
 layout(triangles_adjacency) in;
 layout(triangle_strip, max_vertices = 6) out;
 
+uniform int LightCount;
+layout(std140, binding = 3) uniform Light{
+	vec4 position;
+	vec4 direction;
+	vec4 attenuation; // constant, linear, quadratic, padding
+	mat4 lightspace_matrix;
+	float angle_precalculated;
+	uint type;
+} Lights[6];
+
 uniform mat4 PVmatrix;
 
 void main() {

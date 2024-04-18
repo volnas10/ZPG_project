@@ -22,5 +22,5 @@ Camera {
 }
 PG2Settings {
 	environment: lebombo_4k.exr
-	shadows: stencil
+	shadows: map
 }
