@@ -67,72 +67,92 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 			}
 
 		}
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(0, 0, viewport_width, viewport_height);
-		glEnable(GL_STENCIL_TEST);
-		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-		glCullFace(GL_BACK);
 	}
-	else if (shadow_type == SHADOWS_STENCIL) {
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, viewport_width, viewport_height);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	glCullFace(GL_BACK);
+
+	for (AbstractRenderer* r : pre_renderers) {
+		r->render();
+	}
+
+	if (shadow_type == SHADOWS_STENCIL) {
 		// Start with ambient pass
+		
 		for (MeshInstances meshInstances : meshes) {
 			meshInstances.mesh->bind();
 			int transformations_idx;
 			((Renderer*)main_renderers[0])->prepare(&transformations_idx, -1);
 			meshInstances.instances->bind(transformations_idx);
-			((Renderer*)main_renderers[0])->render(meshInstances.mesh, meshInstances.instances->size());
+			((Renderer*)main_renderers[0])->render(meshInstances.mesh, meshInstances.instances->size(), true);
 		}
-
+		
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		glDepthMask(GL_FALSE);
 		glEnable(GL_DEPTH_CLAMP);
 		glDisable(GL_CULL_FACE);
-		glFrontFace(GL_CCW);
+		//glFrontFace(GL_CCW);
 		glEnable(GL_STENCIL_TEST);
 		glStencilMask(0xFF);
 		glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
 		glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
 		glStencilFunc(GL_ALWAYS, 0, 0xFF);
-
+		
 		// Do the shadow pass
 		for (MeshInstances meshInstances : meshes) {
 			meshInstances.mesh->bind();
 			int transformations_idx;
 			((Renderer*)main_renderers[1])->prepare(&transformations_idx, -1);
 			meshInstances.instances->bind(transformations_idx);
-			((Renderer*)main_renderers[1])->render(meshInstances.mesh, meshInstances.instances->size());
+			((Renderer*)main_renderers[1])->render(meshInstances.mesh, meshInstances.instances->size(), true);
 		}
-
+		
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glDepthMask(GL_TRUE);
+		glDisable(GL_DEPTH_CLAMP);
+		glDepthFunc(GL_LEQUAL);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		glEnable(GL_STENCIL_TEST);
+		glStencilMask(0);
+		glStencilOpSeparate(GL_FRONT_AND_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
+		glStencilFunc(GL_EQUAL, 0, 0xFF);
+		
+		// Do the lighting pass
+		for (MeshInstances meshInstances : meshes) {
+			meshInstances.mesh->bind();
+			int transformations_idx;
+			((Renderer*)main_renderers[2])->prepare(&transformations_idx, -1);
+			meshInstances.instances->bind(transformations_idx);
+			((Renderer*)main_renderers[2])->render(meshInstances.mesh, meshInstances.instances->size(), true);
+		}
+		glStencilMask(0xFF);
+		glDisable(GL_STENCIL_TEST);
+		
 	}
 
 	//depth_map_renderer->render(shadow_mapper->getUnit());
-	
-	
-	for (AbstractRenderer* r : pre_renderers) {
-		r->render();
-	}
 
-	for (MeshInstances meshInstances : meshes) {
-		meshInstances.mesh->bind();
+	if (shadow_type != SHADOWS_STENCIL) {
+		for (MeshInstances meshInstances : meshes) {
+			meshInstances.mesh->bind();
 
-		// Use renderer
-		int transformations_idx;
-		if (shadow_type == SHADOWS_MAP) {
-			((Renderer*) main_renderers[0])->prepare(&transformations_idx, shadow_mapper->getUnit());
+			// Use renderer
+			int transformations_idx;
+			if (shadow_type == SHADOWS_MAP) {
+				((Renderer*)main_renderers[0])->prepare(&transformations_idx, shadow_mapper->getUnit());
+			}
+			else {
+				((Renderer*)main_renderers[0])->prepare(&transformations_idx, -1);
+			}
+			meshInstances.instances->bind(transformations_idx);
+
+			// Draw the mesh with every transformation
+			((Renderer*)main_renderers[0])->render(meshInstances.mesh, meshInstances.instances->size());
 		}
-		else {
-			((Renderer*)main_renderers[0])->prepare(&transformations_idx, -1);
-		}
-		meshInstances.instances->bind(transformations_idx);
-
-		// Draw the mesh with every transformation
-		((Renderer*)main_renderers[0])->render(meshInstances.mesh, meshInstances.instances->size());
 	}
-
-	glDisable(GL_STENCIL_TEST);
-
 
 	for (AbstractRenderer* r : post_renderers) {
 		r->render();

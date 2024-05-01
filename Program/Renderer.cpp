@@ -127,9 +127,9 @@ void Renderer::prepare(int* transformations_idx, GLint depth_map_ID) {
     *transformations_idx = 0;
 }
 
-void Renderer::render(object::Mesh* mesh, size_t count) {
+void Renderer::render(object::Mesh* mesh, size_t count, bool adjacency) {
     mesh->bindUniforms(1);
-    glDrawElementsInstanced(GL_TRIANGLES_ADJACENCY, (GLsizei) mesh->size(), GL_UNSIGNED_INT, NULL, (GLsizei) count);
+    glDrawElementsInstanced(adjacency ? GL_TRIANGLES_ADJACENCY : GL_TRIANGLES, (GLsizei) mesh->size(), GL_UNSIGNED_INT, NULL, (GLsizei) count);
 
     program->stopUsing();
 }

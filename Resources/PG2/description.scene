@@ -1,3 +1,6 @@
+PG2Settings {
+	shadows: stencil
+}
 Transformation {
 	position: 0.0 0.0 0.0
 	scale: 0.1 0.1 0.1
@@ -22,5 +25,4 @@ Camera {
 }
 PG2Settings {
 	environment: lebombo_4k.exr
-	shadows: map
 }

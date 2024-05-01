@@ -20,12 +20,13 @@
 #include "TextureManager.h"
 #include "FloorGenerator.h"
 #include "BezierCurve.h"
+#include "BS_thread_pool.hpp"
 
 #include "Scene.h"
 
 using namespace Assimp;
 
-int Scene::findAdjacencedIndex(const aiMesh* mesh, int index1, int index2, int index3) {
+unsigned int findAdjacencedIndex(const aiMesh* mesh, unsigned int index1, unsigned int index2, unsigned int index3) {
 	for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
 		unsigned int*& indices = mesh->mFaces[i].mIndices;
 
@@ -38,9 +39,30 @@ int Scene::findAdjacencedIndex(const aiMesh* mesh, int index1, int index2, int i
 				return v_other;
 		}
 	}
+	// No adjanced vertex found
+	return index2;
 }
 
-object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
+void parseAdjancedParallel(const aiMesh* mesh, int start, int end, std::vector<unsigned int>* indices) {
+	for (int i = start; i < end; i++) {
+		aiFace face = mesh->mFaces[i];
+		unsigned int v0 = face.mIndices[0];
+		unsigned int v2 = face.mIndices[1];
+		unsigned int v4 = face.mIndices[2];
+		unsigned int v1 = findAdjacencedIndex(mesh, v0, v2, v4);
+		unsigned int v3 = findAdjacencedIndex(mesh, v2, v4, v0);
+		unsigned int v5 = findAdjacencedIndex(mesh, v4, v0, v2);
+
+		indices->push_back(v0);
+		indices->push_back(v1);
+		indices->push_back(v2);
+		indices->push_back(v3);
+		indices->push_back(v4);
+		indices->push_back(v5);
+	}
+}
+
+object::Object* Scene::parseObject(const aiScene* scene, aiString path, bool adjacency) {
 	std::vector<object::Material> materials;
 	object::Object* object = new object::Object();
 	std::vector<aiTexture*> memory_textures;
@@ -170,16 +192,31 @@ object::Object* Scene::parseObject(const aiScene* scene, aiString path) {
 		}
 
 		// Parse indices with adjancency
-		for (unsigned int f_index = 0; f_index < mesh->mNumFaces; f_index++) {
-			aiFace face = mesh->mFaces[f_index];
+		if (adjacency) {
+			int num_faces = mesh->mNumFaces;
+			std::cout << "Parsing adjanced indices for mesh" << i << " with " << num_faces << " faces" << std::endl;
+			int threads = std::min((int) std::ceilf((float) num_faces / 32), 16);
+			BS::thread_pool pool;
+			std::vector<std::vector<unsigned int>> thread_indices(threads);
+			for (int i = 0; i < threads; i++) {
+				pool.submit(parseAdjancedParallel, mesh, i * num_faces / threads, (i + 1) * num_faces / threads, &thread_indices[i]);
+			}
+			pool.wait_for_tasks();
 
-			int v0 = face.mIndices[0];
-			int v2 = face.mIndices[1];
-			int v4 = face.mIndices[2];
-
-			// TODO : Find adjacencies
-
+			// Combine indices
+			for (int i = 0; i < threads; i++) {
+				indices.insert(indices.end(), thread_indices[i].begin(), thread_indices[i].end());
+			}
 		}
+		else {
+			for (unsigned int f_index = 0; f_index < mesh->mNumFaces; f_index++) {
+				aiFace face = mesh->mFaces[f_index];
+				for (int idx = 0; idx < 3; idx++) {
+					indices.push_back(face.mIndices[idx]);
+				}
+			}
+		}
+		
 		object->addMesh(vertices, normals, uvs, tangents, bitangents, indices, materials[mesh->mMaterialIndex]);
 	}
 
@@ -369,7 +406,7 @@ bool Scene::load() {
 						model_path += obj_name.substr(0, last_slash + 1);
 					}
 
-					object::Object* obj = parseObject(scene, aiString(model_path));
+					object::Object* obj = parseObject(scene, aiString(model_path), shadow_type == SHADOWS_STENCIL);
 					obj->name = name;
 					models.push_back(obj);
 				}
@@ -694,22 +731,29 @@ bool Scene::load() {
 	EnvMapRenderer* renderer = new EnvMapRenderer(sphere, camera);
 	pre_renderers.push_back(renderer);
 
-	if (shadow_type != SHADOWS_STENCIL) {
-		Shader vertex_shader("CompleteVertexShader.glsl", GL_VERTEX_SHADER);
-		Shader fragment_shader("CompleteFragmentShader.glsl", GL_FRAGMENT_SHADER);
-		Program* program = new Program({ vertex_shader, fragment_shader });
-		camera->subscribe(program);
-		lights->subscribe(program);
-		main_renderers.push_back(new Renderer(program));
+	if (shadow_type == SHADOWS_STENCIL) {
+		Shader vertex_shader1("AmbientVertexShader.glsl", GL_VERTEX_SHADER);
+		Shader fragment_shader1("AmbientFragmentShader.glsl", GL_FRAGMENT_SHADER);
+		Program* program1 = new Program({ vertex_shader1, fragment_shader1 });
+		camera->subscribe(program1);
+		lights->subscribe(program1);
+		main_renderers.push_back(new Renderer(program1));
+
+		Shader vertex_shader2("StencilVertexShader.glsl", GL_VERTEX_SHADER);
+		Shader geometry_shader2("StencilGeometryShader.glsl", GL_GEOMETRY_SHADER);
+		Shader fragment_shader2("StencilFragmentShader.glsl", GL_FRAGMENT_SHADER);
+		Program* program2 = new Program({ vertex_shader2, geometry_shader2, fragment_shader2});
+		camera->subscribe(program2);
+		lights->subscribe(program2);
+		main_renderers.push_back(new Renderer(program2));
 	}
-	else {
-		Shader vertex_shader("AmbientVertexShader.glsl", GL_VERTEX_SHADER);
-		Shader fragment_shader("AmbientFragmentShader.glsl", GL_FRAGMENT_SHADER);
-		Program* program = new Program({ vertex_shader, fragment_shader });
-		camera->subscribe(program);
-		lights->subscribe(program);
-		main_renderers.push_back(new Renderer(program));
-	}
+
+	Shader vertex_shader("CompleteVertexShader.glsl", GL_VERTEX_SHADER);
+	Shader fragment_shader("CompleteFragmentShader.glsl", GL_FRAGMENT_SHADER);
+	Program* program = new Program({ vertex_shader, fragment_shader });
+	camera->subscribe(program);
+	lights->subscribe(program);
+	main_renderers.push_back(new Renderer(program));
 
 	// Post-renders
 	CrosshairRenderer* crosshair_renderer = new CrosshairRenderer();

@@ -25,8 +25,7 @@ private:
 
 	unsigned int shadow_type;
 
-	int findAdjacencedIndex(const aiMesh* mesh, int vertex1, int vertex2, int vertex3);
-	object::Object* parseObject(const aiScene* scene, aiString path);
+	object::Object* parseObject(const aiScene* scene, aiString path, bool adjacency);
 	std::vector<float> parseVertices(const aiScene* scene);
 
 public:

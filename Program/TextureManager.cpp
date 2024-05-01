@@ -234,8 +234,6 @@ void TextureManager::init() {
 	//FIBITMAP* bitmap = FreeImage_Load(FIF_PNG, "../Resources/brdf_integration_map_ct_ggx.png");
 	if (!bitmap) {
 		std::cerr << "Failed to load BRDF integration map: " << std::endl;
-
-
 	}
 
 	int width = FreeImage_GetWidth(bitmap);

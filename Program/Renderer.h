@@ -33,7 +33,7 @@ public:
 	~Renderer();
 	Renderer(Program* program);
 	void prepare(int* transformations_idx, GLint depth_map_ID);
-	void render(object::Mesh* mesh, size_t count);
+	void render(object::Mesh* mesh, size_t count, bool adjacency = false);
 };
 
 /* Renderer specialized for rendering skybox only

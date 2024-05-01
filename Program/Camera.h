@@ -16,6 +16,8 @@ private:
 	glm::mat4 projection_matrix;
 
 	std::vector<CameraSubscriber*> matrix_subscribers;
+
+	void calcProjectionMatrix();
 public:
 	Camera(glm::vec3 position, float fov, float horizontal_angle, float vertical_angle);
 

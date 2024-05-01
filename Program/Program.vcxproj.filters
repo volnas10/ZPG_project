@@ -69,9 +69,6 @@
     <ClCompile Include="BezierCurve.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StencilGeometryShader.glsl">
-      <Filter>shaders</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\SkyboxFragmentShader.glsl">
@@ -120,6 +117,9 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shaders\StencilVertexShader.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\StencilGeometryShader.glsl">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
