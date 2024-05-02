@@ -122,6 +122,9 @@
     <None Include="shaders\StencilGeometryShader.glsl">
       <Filter>shaders</Filter>
     </None>
+    <None Include="shaders\StencilGeometryShader_ccw.glsl">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Program.h">

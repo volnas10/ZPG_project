@@ -93,7 +93,7 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 		glDepthMask(GL_FALSE);
 		glEnable(GL_DEPTH_CLAMP);
 		glDisable(GL_CULL_FACE);
-		//glFrontFace(GL_CCW);
+		glFrontFace(GL_CCW);
 		glEnable(GL_STENCIL_TEST);
 		glStencilMask(0xFF);
 		glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
@@ -113,14 +113,15 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 		glDepthMask(GL_TRUE);
 		glDisable(GL_DEPTH_CLAMP);
 		glDepthFunc(GL_LEQUAL);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
+		//glEnable(GL_CULL_FACE);
+		//glCullFace(GL_BACK);
 		glEnable(GL_STENCIL_TEST);
 		glStencilMask(0);
 		glStencilOpSeparate(GL_FRONT_AND_BACK, GL_KEEP, GL_KEEP, GL_KEEP);
 		glStencilFunc(GL_EQUAL, 0, 0xFF);
 		
 		// Do the lighting pass
+		
 		for (MeshInstances meshInstances : meshes) {
 			meshInstances.mesh->bind();
 			int transformations_idx;
@@ -128,6 +129,7 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 			meshInstances.instances->bind(transformations_idx);
 			((Renderer*)main_renderers[2])->render(meshInstances.mesh, meshInstances.instances->size(), true);
 		}
+		
 		glStencilMask(0xFF);
 		glDisable(GL_STENCIL_TEST);
 		

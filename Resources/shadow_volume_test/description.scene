@@ -1,0 +1,33 @@
+PG2Settings {
+	shadows: stencil
+}
+Transformation {
+	position: 0.0 0.0 0.0
+	scale: 0.1 0.1 0.1
+	rotation: -90.0 0.0 0.0
+	rotation: 0.0 180.0 0.0
+}
+Transformation {
+    rotation: 0.0 0.0 0.0
+    change: 0.0 1.0 0.0
+}
+Model {
+	name: shadow_volume_test.obj
+}
+Object {
+	model: 0
+	default_transformation: 0
+}
+Light {
+	type: directional
+	direction: 0.42 -0.6 0.87
+    transformation: 1
+}
+Camera {
+	position: 4.0 0.0 -4.0
+	lookat: 0.0 0.0 0.0
+	fov: 70.0
+}
+PG2Settings {
+	environment: lebombo_4k.exr
+}

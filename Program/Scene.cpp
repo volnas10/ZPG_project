@@ -26,7 +26,7 @@
 
 using namespace Assimp;
 
-unsigned int findAdjacencedIndex(const aiMesh* mesh, unsigned int index1, unsigned int index2, unsigned int index3) {
+unsigned int findAdjacencedIndex(const aiMesh* mesh, glm::vec3 index1, glm::vec3 index2, glm::vec3 index3, unsigned int decimate) {
 	for (unsigned int i = 0; i < mesh->mNumFaces; ++i) {
 		unsigned int*& indices = mesh->mFaces[i].mIndices;
 
@@ -35,12 +35,18 @@ unsigned int findAdjacencedIndex(const aiMesh* mesh, unsigned int index1, unsign
 			unsigned int v2 = indices[(edge + 1) % 3];
 			unsigned int v_other = indices[(edge + 2) % 3];
 
-			if (((v1 == index1 && v2 == index2) || (v2 == index1 && v1 == index2)) && v_other != index3)
+			// Get vertex positions
+			glm::vec3 v1_pos(mesh->mVertices[v1].x, mesh->mVertices[v1].y, mesh->mVertices[v1].z);
+			glm::vec3 v2_pos(mesh->mVertices[v2].x, mesh->mVertices[v2].y, mesh->mVertices[v2].z);
+			glm::vec3 v_other_pos(mesh->mVertices[v_other].x, mesh->mVertices[v_other].y, mesh->mVertices[v_other].z);
+
+
+			if (((v1_pos == index1 && v2_pos == index2) || (v2_pos == index1 && v1_pos == index2)) && v_other_pos != index3)
 				return v_other;
 		}
 	}
 	// No adjanced vertex found
-	return index2;
+	return decimate;
 }
 
 void parseAdjancedParallel(const aiMesh* mesh, int start, int end, std::vector<unsigned int>* indices) {
@@ -49,9 +55,14 @@ void parseAdjancedParallel(const aiMesh* mesh, int start, int end, std::vector<u
 		unsigned int v0 = face.mIndices[0];
 		unsigned int v2 = face.mIndices[1];
 		unsigned int v4 = face.mIndices[2];
-		unsigned int v1 = findAdjacencedIndex(mesh, v0, v2, v4);
-		unsigned int v3 = findAdjacencedIndex(mesh, v2, v4, v0);
-		unsigned int v5 = findAdjacencedIndex(mesh, v4, v0, v2);
+
+		glm::vec3 v0_pos(mesh->mVertices[v0].x, mesh->mVertices[v0].y, mesh->mVertices[v0].z);
+		glm::vec3 v2_pos(mesh->mVertices[v2].x, mesh->mVertices[v2].y, mesh->mVertices[v2].z);
+		glm::vec3 v4_pos(mesh->mVertices[v4].x, mesh->mVertices[v4].y, mesh->mVertices[v4].z);
+
+		unsigned int v1 = findAdjacencedIndex(mesh, v0_pos, v2_pos, v4_pos, v0);
+		unsigned int v3 = findAdjacencedIndex(mesh, v2_pos, v4_pos, v0_pos, v2);
+		unsigned int v5 = findAdjacencedIndex(mesh, v4_pos, v0_pos, v2_pos, v4);
 
 		indices->push_back(v0);
 		indices->push_back(v1);
@@ -740,7 +751,7 @@ bool Scene::load() {
 		main_renderers.push_back(new Renderer(program1));
 
 		Shader vertex_shader2("StencilVertexShader.glsl", GL_VERTEX_SHADER);
-		Shader geometry_shader2("StencilGeometryShader.glsl", GL_GEOMETRY_SHADER);
+		Shader geometry_shader2("StencilGeometryShader_ccw.glsl", GL_GEOMETRY_SHADER);
 		Shader fragment_shader2("StencilFragmentShader.glsl", GL_FRAGMENT_SHADER);
 		Program* program2 = new Program({ vertex_shader2, geometry_shader2, fragment_shader2});
 		camera->subscribe(program2);

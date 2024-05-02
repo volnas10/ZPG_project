@@ -64,9 +64,19 @@ void main(){
 		normal = normalize(TBN * normal);
 	}
 
+	vec3 diffuseColor;
+	if (material.has_textures[0] > uint(0)) {
+		diffuseColor = texture(sampler2D(texturePacks[material.texture_id].diffuse_texture), uv).rgb;
+	}
+	else {
+		diffuseColor = material.diffuse_color.rgb;
+	}
+
 	vec3 eye_direction = normalize(eyePosition_ws - vertexPosition_ws);
 	float cos_theta = dot(normal_ws, eye_direction);
 	if (cos_theta < 0) {
+		color = vec4(diffuseColor.rgb * 0.05 , 1.0);
+		return;
 		normal = -normal;
 		cos_theta = -cos_theta;
 	}
@@ -77,14 +87,6 @@ void main(){
 	// Sample irradiance map
 	vec3 irradiance = texture(IrradianceSampler, vec2(u, 1 - v)).rgb;
 
-	// If material has texture, use it
-	vec3 diffuseColor;
-	if (material.has_textures[0] > uint(0)) {
-		diffuseColor = texture(sampler2D(texturePacks[material.texture_id].diffuse_texture), uv).rgb;
-	}
-	else {
-		diffuseColor = material.diffuse_color.rgb;
-	}
 	vec3 specularColor;
 	if (material.has_textures[1] > uint(0)) {
 		specularColor = texture(sampler2D(texturePacks[material.texture_id].specular_map), uv).rgb;

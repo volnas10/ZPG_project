@@ -28,7 +28,7 @@ Window::Window(GLFWwindow* window) {
 
     last_time = -1;
 
-    scene = new Scene("PG2");
+    scene = new Scene("shadow_volume_test");
     scene->load();
     
     camera = scene->getCamera();
