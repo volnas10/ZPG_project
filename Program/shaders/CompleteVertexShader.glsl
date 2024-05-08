@@ -18,6 +18,7 @@ out vec3 eyeDirection_cs;
 out vec3 normal_ws;
 flat out vec3 eyePosition_ws;
 out mat3 TBN;
+out vec3 lightDirection_ws;
 
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionViewMatrix;
@@ -25,6 +26,16 @@ uniform mat4 ProjectionViewMatrix;
 layout(std140, binding = 0) uniform ModelMatrices{
 	mat4 model_matrix[1024];
 };
+
+uniform int LightCount;
+layout(std140, binding = 3) uniform Light{
+	vec4 position;
+	vec4 direction;
+	vec4 attenuation; // constant, linear, quadratic, padding
+	mat4 lightspace_matrix;
+	float angle_precalculated;
+	uint type;
+} Lights[6];
 
 void main(){
 	gl_Position = ProjectionViewMatrix * model_matrix[gl_InstanceID] * vec4(VertexPosition, 1);
@@ -51,6 +62,15 @@ void main(){
 	TBN = mat3(T, B, N);
 
 	uv = VertexUV;
+
+	if (LightCount > 0) {
+		if (Lights[0].type == 1) {
+			lightDirection_ws = normalize(-Lights[0].direction.xyz);
+		}
+		else {
+			lightDirection_ws = normalize(Lights[0].position.xyz - vertexPosition_ws);
+		}
+	}
 }
 
 

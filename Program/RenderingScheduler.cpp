@@ -113,8 +113,8 @@ void RenderingScheduler::render(float viewport_width, float viewport_height) {
 		glDepthMask(GL_TRUE);
 		glDisable(GL_DEPTH_CLAMP);
 		glDepthFunc(GL_LEQUAL);
-		//glEnable(GL_CULL_FACE);
-		//glCullFace(GL_BACK);
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
 		glEnable(GL_STENCIL_TEST);
 		glStencilMask(0);
 		glStencilOpSeparate(GL_FRONT_AND_BACK, GL_KEEP, GL_KEEP, GL_KEEP);

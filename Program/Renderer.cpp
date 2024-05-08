@@ -243,6 +243,7 @@ EnvMapRenderer::EnvMapRenderer(std::vector<float> sphere, Camera* camera) : Abst
 void EnvMapRenderer::render() {
     program->use();
     glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
 
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, sphere_VBO);
@@ -252,5 +253,6 @@ void EnvMapRenderer::render() {
     glDrawArrays(GL_TRIANGLES, 0, triangles);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
     program->stopUsing();
 }

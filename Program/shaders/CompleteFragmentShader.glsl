@@ -12,6 +12,7 @@ in vec3 eyeDirection_cs;
 in vec3 normal_ws;
 flat in vec3 eyePosition_ws;
 in mat3 TBN;
+in vec3 lightDirection_ws;
 
 out vec4 color;
 
@@ -72,11 +73,15 @@ void main(){
 		diffuseColor = material.diffuse_color.rgb;
 	}
 
+	if (LightCount > 0) {
+		if (dot(normal_ws, lightDirection_ws) < 0.0) {
+			return;
+		}
+	}
+
 	vec3 eye_direction = normalize(eyePosition_ws - vertexPosition_ws);
 	float cos_theta = dot(normal_ws, eye_direction);
 	if (cos_theta < 0) {
-		color = vec4(diffuseColor.rgb * 0.05 , 1.0);
-		return;
 		normal = -normal;
 		cos_theta = -cos_theta;
 	}
